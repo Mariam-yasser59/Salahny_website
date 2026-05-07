@@ -1,0 +1,14 @@
+{
+  "name": "salahny-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack Salahny smart auto service platform",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "start": "npm --prefix backend start",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
