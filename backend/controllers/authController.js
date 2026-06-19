@@ -38,11 +38,15 @@ export const registerDriver = (req, res) => {
 };
 
 export const registerWorkshop = (req, res) => {
-  const { name, email, password, phone, city, address } = req.body;
+  const body = req.body || {};
+  const { email, password, phone, city } = body;
+  const name = body.workshopName || body.name || body.ownerName;
+  const address = body.workshopAddress || body.address;
+  if (!name || !email || !password) return res.status(400).json({ message: 'Workshop name, email, and password are required' });
   if (db.users.some((user) => user.email === email)) return res.status(409).json({ message: 'Email already registered' });
 
   const user = { id: nextId('u', 'users'), role: 'workshop', name, email, password, phone, city, status: 'pending', joinedAt: new Date().toISOString().slice(0, 10) };
-  const workshop = { id: nextId('w', 'workshops'), userId: user.id, name, address, distance: 'New', rating: 0, reviews: 0, open: false, verified: false, revenue: 0, phone, specialties: ['Diagnostics'] };
+  const workshop = { id: nextId('w', 'workshops'), userId: user.id, name, address, distance: 'New', rating: 0, reviews: 0, open: false, verified: false, accountStatus: 'pending', verificationStatus: 'pending_upload', revenue: 0, phone, specialties: ['Diagnostics'], serviceDetails: [], availableSlots: [], verificationDocumentName: body.verificationDocumentName };
   db.users.push(user);
   db.workshops.push(workshop);
   db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: 'user_registered', actor: name, message: 'Workshop registered and awaits verification', date: new Date().toLocaleString() });

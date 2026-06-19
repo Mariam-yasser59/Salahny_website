@@ -1,4 +1,4 @@
-import { BadgeCheck, BarChart3, ClipboardCheck, Star, Wrench } from 'lucide-react';
+import { BadgeCheck, BarChart3, CalendarClock, ClipboardCheck, Star, Wrench } from 'lucide-react';
 import SectionHeader from '../../components/SectionHeader.jsx';
 import StatCard from '../../components/StatCard.jsx';
 import DataTable from '../../components/DataTable.jsx';
@@ -23,6 +23,7 @@ export default function WorkshopDashboard() {
         <StatCard label="Pending Requests" value={data.pendingRequestCount ?? data.pendingRequests?.length ?? 0} hint="Awaiting response" icon={ClipboardCheck} />
         <StatCard label="Active Jobs" value={data.activeJobCount ?? data.activeJobs?.length ?? 0} hint="In service workflow" icon={Wrench} />
         <StatCard label="Today Jobs" value={data.todayJobs ?? 0} hint="Scheduled today" icon={BadgeCheck} />
+        <StatCard label="Open Slots" value={data.availableSlots ?? 0} hint="Available for booking" icon={CalendarClock} />
         <StatCard label="Revenue" value={`${data.revenueSummary?.total ?? data.revenue ?? 0} EGP`} hint="Current summary" icon={BarChart3} />
         <StatCard label="Rating" value={data.rating} hint="Customer reviews" icon={Star} />
       </div>

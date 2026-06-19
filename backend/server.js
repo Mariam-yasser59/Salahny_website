@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import driverRoutes from './routes/driverRoutes.js';
 import workshopRoutes from './routes/workshopRoutes.js';
+import workshopPortalRoutes from './routes/workshopPortalRoutes.js';
+import { chatRoutes, diagnosticRoutes, emergencyRoutes, notificationRoutes, trackingRoutes } from './routes/workshopIntegrationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 
@@ -27,6 +29,12 @@ app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/workshop', workshopRoutes);
+app.use('/api/workshop-portal', workshopPortalRoutes);
+app.use('/api/emergency', emergencyRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/diagnostics', diagnosticRoutes);
+app.use('/api/tracking', trackingRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.use(express.static(frontendDist));

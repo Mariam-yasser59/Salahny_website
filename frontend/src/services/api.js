@@ -37,6 +37,8 @@ const normalizeList = (data, keys = []) => {
   return [];
 };
 
+const payload = (data) => data?.data ?? data;
+
 const adaptBooking = (booking) => ({
   ...booking,
   id: booking.id || booking._id,
@@ -61,7 +63,20 @@ const withFallback = async (primary, fallback) => {
 const virtualGet = async (path) => {
   if (path === '/workshop/dashboard') {
     return withFallback(
-      () => request('/workshop-portal/dashboard'),
+      async () => {
+        const data = payload(await request('/workshop-portal/dashboard'));
+        return {
+          workshop: data.profile,
+          rating: data.profile?.rating,
+          todayJobs: data.stats?.jobsToday || 0,
+          pendingRequestCount: data.stats?.pending || 0,
+          activeJobCount: data.stats?.active || 0,
+          availableSlots: data.stats?.availableSlots || 0,
+          revenueSummary: { total: data.stats?.revenue || data.profile?.monthlyRevenue || 0 },
+          verificationStatus: data.profile?.verificationStatus || data.profile?.accountStatus,
+          recentRequests: normalizeList(data.bookings, ['bookings']).map(adaptBooking)
+        };
+      },
       async () => {
         const data = await request('/workshop/dashboard');
         return {
@@ -84,7 +99,7 @@ const virtualGet = async (path) => {
 
   if (path === '/workshop/jobs') {
     return withFallback(
-      () => request('/workshop-portal/bookings?status=current'),
+      () => request('/workshop-portal/bookings').then((data) => normalizeList(data, ['data']).map(adaptBooking).filter((booking) => ['accepted', 'in_progress', 'diagnostics_ready', 'repair_in_progress'].includes(booking.status))),
       async () => normalizeList(await request('/workshop/active-jobs'), ['bookings', 'data']).map(adaptBooking)
     );
   }
@@ -98,7 +113,7 @@ const virtualGet = async (path) => {
 
   if (path === '/workshop/slots') {
     return withFallback(
-      () => request('/workshop-portal/slots').then((data) => normalizeList(data, ['slots', 'data'])),
+      () => request('/workshop-portal/slots').then((data) => (payload(data) || []).map((slot) => ({ id: slot, date: String(slot).slice(0, 10), time: String(slot).slice(11, 16), booked: false }))),
       () => Promise.resolve([{ id: 'slot-1', date: '2026-06-22', time: '10:00', booked: false }, { id: 'slot-2', date: '2026-06-23', time: '13:30', booked: false }])
     );
   }
@@ -112,14 +127,17 @@ const virtualGet = async (path) => {
 
   if (path === '/workshop/earnings') {
     return withFallback(
-      () => request('/workshop-portal/earnings'),
+      () => request('/workshop-portal/earnings').then((data) => {
+        const item = payload(data);
+        return { ...item, totalEarnings: item.totalEarnings ?? item.total, paidAmount: item.paidAmount ?? item.paid, recent: item.recent || item.items || [] };
+      }),
       () => request('/workshop/earnings').then((data) => ({ totalEarnings: data.monthly, availableBalance: data.monthly - data.weekly, paidAmount: data.weekly, recent: [], ...data }))
     );
   }
 
   if (path === '/workshop/profile') {
     return withFallback(
-      () => request('/workshop-portal/profile'),
+      () => request('/workshop-portal/profile').then(payload),
       () => request('/workshop/profile')
     );
   }
@@ -135,7 +153,7 @@ const virtualGet = async (path) => {
     const bookingId = path.split('/').pop();
     return withFallback(
       async () => ({
-        context: await request(`/chat/bookings/${bookingId}/context`),
+        context: payload(await request(`/chat/bookings/${bookingId}/context`)),
         messages: normalizeList(await request(`/chat/bookings/${bookingId}/messages`), ['messages', 'data'])
       }),
       () => Promise.resolve({ context: { bookingId }, messages: [] })
@@ -165,41 +183,41 @@ export const api = async (path, options = {}) => {
     });
   }
 
-  if (path === '/workshop/services') return request('/workshop-portal/services', options).catch(() => request('/workshop/services', options));
+  if (path === '/workshop/services') return request('/workshop-portal/services', options).then(payload).catch(() => request('/workshop/services', options));
   if (path.startsWith('/workshop/services/')) {
     const id = path.split('/').pop();
     if (options.method === 'DELETE') return request(`/workshop-portal/services/${id}`, options).catch(() => request(`/workshop/services/${id}`, options));
   }
-  if (path === '/workshop/slots') return request('/workshop-portal/slots', { ...options, method: 'PUT' });
+  if (path === '/workshop/slots') return request('/workshop-portal/slots', { ...options, method: 'PUT' }).then((data) => (payload(data) || []).map((slot) => ({ id: slot, date: String(slot).slice(0, 10), time: String(slot).slice(11, 16), booked: false })));
   if (path.startsWith('/workshop/bookings/') && path.endsWith('/status')) {
     const id = path.split('/')[3];
-    return request(`/workshop-portal/bookings/${id}/status`, options).catch(() => request(`/workshop/requests/${id}/status`, options));
+    return request(`/workshop-portal/bookings/${id}/status`, options).then(payload).catch(() => request(`/workshop/requests/${id}/status`, options));
   }
   if (path.startsWith('/workshop/diagnostics/') && path.endsWith('/run')) {
     const id = path.split('/')[3];
-    return request(`/diagnostics/workshop/${id}/run`, options);
+    return request(`/diagnostics/workshop/${id}/run`, options).then(payload);
   }
   if (path.startsWith('/workshop/diagnostics/') && path.endsWith('/upload-obd')) {
     const id = path.split('/')[3];
-    return request(`/diagnostics/workshop/${id}/upload-obd`, options);
+    return request(`/diagnostics/workshop/${id}/upload-obd`, options).then(payload);
   }
   if (path.startsWith('/workshop/diagnostics/') && path.endsWith('/share')) {
     const id = path.split('/')[3];
-    return request(`/chat/bookings/${id}/share-diagnostic`, options);
+    return request(`/chat/bookings/${id}/share-diagnostic`, options).then(payload);
   }
   if (path.startsWith('/workshop/chat/') && path.endsWith('/messages')) {
     const id = path.split('/')[3];
-    return request(`/chat/bookings/${id}/messages`, options);
+    return request(`/chat/bookings/${id}/messages`, options).then(payload);
   }
-  if (path === '/workshop/admin/messages') return request('/workshop-portal/admin/messages', options);
+  if (path === '/workshop/admin/messages') return request('/workshop-portal/admin/messages', options).then(payload);
   if (path.startsWith('/workshop/emergency/')) {
     const [, , , id, action] = path.split('/');
-    if (action === 'accept' || action === 'reject') return request(`/emergency/${id}/${action}`, options);
-    return request(`/emergency/${id}/status`, options);
+    if (action === 'accept' || action === 'reject') return request(`/emergency/${id}/${action}`, options).then(payload);
+    return request(`/emergency/${id}/status`, options).then(payload);
   }
   if (path.startsWith('/workshop/tracking/')) {
     const id = path.split('/').pop();
-    return request(`/tracking/${id}`, options);
+    return request(`/tracking/${id}`, options).then(payload);
   }
   if (path === '/workshop/profile') {
     const body = JSON.parse(options.body || '{}');

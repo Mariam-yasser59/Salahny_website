@@ -1,4 +1,5 @@
 import { db, findById, nextId } from '../data/mockData.js';
+import { notifyAccountStatus } from '../services/emailNotifications.js';
 
 export const dashboard = (_req, res) => {
   res.json({
@@ -19,8 +20,13 @@ export const approveReject = (req, res) => {
   user.status = req.body.action === 'reject' ? 'rejected' : user.role === 'workshop' ? 'verified' : 'active';
   if (user.role === 'workshop') {
     const workshop = db.workshops.find((item) => item.userId === user.id);
-    if (workshop) workshop.verified = user.status === 'verified';
+    if (workshop) {
+      workshop.verified = user.status === 'verified';
+      workshop.accountStatus = user.status === 'verified' ? 'active' : 'rejected';
+      workshop.verificationStatus = user.status === 'verified' ? 'admin_approved' : 'admin_rejected';
+    }
   }
+  notifyAccountStatus(user, user.status, req.body.notes);
   db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: `${user.role}_${req.body.action}`, actor: 'Admin', message: `${user.name} ${req.body.action}ed`, date: new Date().toLocaleString() });
   res.json(user);
 };
@@ -33,6 +39,7 @@ export const updateUserStatus = (req, res) => {
   const user = findById('users', req.params.id);
   if (!user) return res.status(404).json({ message: 'User not found' });
   user.status = req.body.status;
+  notifyAccountStatus(user, user.status, req.body.notes);
   db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: 'account_updated', actor: 'Admin', message: `${user.name} status changed to ${user.status}`, date: new Date().toLocaleString() });
   res.json(user);
 };

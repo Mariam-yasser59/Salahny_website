@@ -11,9 +11,9 @@ export const db = {
     { id: 'v2', driverId: 'u1', make: 'Hyundai', model: 'Elantra', year: 2019, plate: 'MNO-8812', vin: 'KMHD84LF1KU654321', health: 73, obdStatus: 'Disconnected', mileage: 93820, lastService: '2026-02-11' }
   ],
   workshops: [
-    { id: 'w1', userId: 'u3', name: 'TurboFix Garage', address: '19 Abbas El Akkad, Nasr City', distance: '2.4 km', rating: 4.8, reviews: 184, open: true, verified: true, revenue: 68400, phone: '+20 122 661 9090', specialties: ['Diagnostics', 'Oil Change', 'Battery', 'Tires'] },
-    { id: 'w2', userId: 'u4', name: 'Prime Auto Care', address: '90 Street, New Cairo', distance: '6.1 km', rating: 4.6, reviews: 98, open: true, verified: false, revenue: 31200, phone: '+20 109 330 1900', specialties: ['Repair', 'Car Wash', 'Towing'] },
-    { id: 'w3', userId: 'u5', name: 'RedLine Service Hub', address: 'Sphinx Square, Mohandessin', distance: '4.8 km', rating: 4.9, reviews: 221, open: false, verified: true, revenue: 92300, phone: '+20 101 221 5555', specialties: ['Engine', 'Brakes', 'Diagnostics'] }
+    { id: 'w1', userId: 'u3', name: 'TurboFix Garage', address: '19 Abbas El Akkad, Nasr City', latitude: 30.061, longitude: 31.338, distance: '2.4 km', rating: 4.8, reviews: 184, open: true, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 68400, phone: '+20 122 661 9090', specialties: ['Diagnostics', 'Oil Change', 'Battery', 'Tires'], availableSlots: ['2026-06-22T08:00:00.000Z', '2026-06-22T10:00:00.000Z'], serviceDetails: [{ id: 'ws1', name: 'Oil Change', emoji: 'Oil', durationMins: 45, price: 650 }, { id: 'ws2', name: 'AI Diagnostics', emoji: 'Scan', durationMins: 30, price: 300 }] },
+    { id: 'w2', userId: 'u4', name: 'Prime Auto Care', address: '90 Street, New Cairo', latitude: 30.02, longitude: 31.49, distance: '6.1 km', rating: 4.6, reviews: 98, open: true, verified: false, accountStatus: 'pending', verificationStatus: 'pending_upload', revenue: 31200, phone: '+20 109 330 1900', specialties: ['Repair', 'Car Wash', 'Towing'], availableSlots: [], serviceDetails: [] },
+    { id: 'w3', userId: 'u5', name: 'RedLine Service Hub', address: 'Sphinx Square, Mohandessin', latitude: 30.06, longitude: 31.2, distance: '4.8 km', rating: 4.9, reviews: 221, open: false, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 92300, phone: '+20 101 221 5555', specialties: ['Engine', 'Brakes', 'Diagnostics'], availableSlots: [], serviceDetails: [] }
   ],
   services: [
     { id: 's1', name: 'Repair Service', category: 'Maintenance', price: 850, duration: '2-4 hrs', enabled: true, icon: 'Wrench', description: 'Mechanical inspection and repair for engine, brakes, suspension, and drivetrain issues.' },
@@ -32,7 +32,7 @@ export const db = {
     { id: 'p3', name: 'Premium', price: 799, period: 'month', enabled: true, features: ['Unlimited diagnostics', '24/7 emergency priority', 'Free annual inspection', 'Dedicated support advisor'] }
   ],
   bookings: [
-    { id: 'b1', driverId: 'u1', vehicleId: 'v1', workshopId: 'w1', serviceId: 's2', status: 'in_progress', date: '2026-04-28', time: '10:30', price: 650, progress: 55, issue: 'Oil change due soon', timeline: ['Booked', 'Accepted', 'Vehicle received', 'Service in progress'] },
+    { id: 'b1', driverId: 'u1', vehicleId: 'v1', workshopId: 'w1', serviceId: 's2', status: 'in_progress', date: '2026-04-28', time: '10:30', slot: '2026-04-28T08:30:00.000Z', price: 650, progress: 55, issue: 'Oil change due soon', timeline: ['Booked', 'Accepted', 'Vehicle received', 'Service in progress'] },
     { id: 'b2', driverId: 'u1', vehicleId: 'v2', workshopId: 'w3', serviceId: 's8', status: 'completed', date: '2026-04-12', time: '14:00', price: 180, progress: 100, issue: 'Battery voltage fluctuating', timeline: ['Booked', 'Accepted', 'Diagnostic completed', 'Report sent'] },
     { id: 'b3', driverId: 'u2', vehicleId: 'v3', workshopId: 'w1', serviceId: 's6', status: 'pending', date: '2026-04-27', time: '08:45', price: 950, progress: 15, issue: 'Vehicle will not start', timeline: ['Requested'] }
   ],
@@ -56,7 +56,23 @@ export const db = {
     { id: 'm1', role: 'assistant', text: 'Your coolant temperature is normal. The oil service reminder is the highest-priority item.' },
     { id: 'm2', role: 'user', text: 'Can I drive for another week?' },
     { id: 'm3', role: 'assistant', text: 'Yes, but avoid long high-load trips and schedule oil service within 2 weeks.' }
-  ]
+  ],
+  emergencyRequests: [
+    { id: 'er1', workshopId: 'w1', driverId: 'u1', emergencyType: 'Battery jump start', issueDescription: 'Vehicle will not start near Nasr City.', address: 'Makram Ebeid, Nasr City', latitude: 30.06, longitude: 31.34, locationNotes: 'Near the main entrance', status: 'assigned', createdAt: '2026-06-19T09:15:00.000Z' }
+  ],
+  adminWorkshopMessages: [
+    { id: 'am1', workshopId: 'w1', senderRole: 'admin', senderId: 'admin1', text: 'Your verification documents are approved. Keep availability updated for driver bookings.', createdAt: '2026-06-18T10:00:00.000Z', readByWorkshop: false, readByAdmin: true }
+  ],
+  bookingMessages: [
+    { id: 'bm1', bookingId: 'b1', senderRole: 'driver', senderId: 'u1', text: 'I will arrive on time for the oil change.', createdAt: '2026-06-19T08:00:00.000Z' }
+  ],
+  notifications: [
+    { id: 'n1', userId: 'u3', title: 'New assigned request', message: 'A roadside emergency request was assigned to your workshop.', type: 'emergency', createdAt: '2026-06-19T09:15:00.000Z' }
+  ],
+  earnings: [
+    { id: 'e1', workshopId: 'w1', bookingId: 'b2', driverId: 'u1', amount: 180, status: 'available', createdAt: '2026-04-12T14:00:00.000Z' }
+  ],
+  trackingUpdates: []
 };
 
 export const findById = (collection, id) => db[collection].find((item) => item.id === id);

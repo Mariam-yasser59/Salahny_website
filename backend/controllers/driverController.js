@@ -1,4 +1,5 @@
 import { db, findById, nextId } from '../data/mockData.js';
+import { notifyWorkshopNewBooking } from '../services/emailNotifications.js';
 
 const enrichBooking = (booking) => ({
   ...booking,
@@ -60,6 +61,13 @@ export const getBooking = (req, res) => {
 
 export const createBooking = (req, res) => {
   const service = findById('services', req.body.serviceId);
+  const workshop = findById('workshops', req.body.workshopId);
+  const slot = req.body.slot || (req.body.date && req.body.time ? `${req.body.date}T${req.body.time}:00.000Z` : null);
+  if (slot && workshop) {
+    const alreadyBooked = db.bookings.some((booking) => booking.workshopId === workshop.id && booking.slot === slot && !['cancelled', 'rejected'].includes(booking.status));
+    if (alreadyBooked) return res.status(409).json({ message: 'This workshop slot is no longer available' });
+    if (workshop.availableSlots?.length && !workshop.availableSlots.includes(slot)) return res.status(409).json({ message: 'Selected workshop slot is not available' });
+  }
   const booking = {
     id: nextId('b', 'bookings'),
     driverId: req.user.id,
@@ -68,10 +76,14 @@ export const createBooking = (req, res) => {
     progress: 10,
     issue: req.body.issue || 'Service request created',
     timeline: ['Requested'],
+    slot,
     ...req.body
   };
   db.bookings.unshift(booking);
+  if (slot && workshop?.availableSlots) workshop.availableSlots = workshop.availableSlots.filter((item) => item !== slot);
   db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: 'booking_created', actor: req.user.email, message: `Booking ${booking.id} created`, date: new Date().toLocaleString() });
+  const driver = db.users.find((user) => user.id === req.user.id);
+  notifyWorkshopNewBooking(workshop || {}, { ...booking, serviceName: service?.name }, driver);
   res.status(201).json(enrichBooking(booking));
 };
 

@@ -6,13 +6,20 @@ import { useApi } from '../../hooks/useApi.js';
 export default function WorkshopAvailability() {
   const { data, setData } = useApi('/workshop/slots', []);
   const [slot, setSlot] = useState({ date: '', time: '' });
+  const [editingId, setEditingId] = useState('');
 
-  const add = () => {
+  const saveLocalSlot = () => {
     if (!slot.date || !slot.time) return;
-    setData([...data, { id: `${slot.date}-${slot.time}`, ...slot, booked: false }]);
+    const next = { id: `${slot.date}T${slot.time}:00.000Z`, ...slot, booked: false };
+    setData(editingId ? data.map((item) => (item.id === editingId ? next : item)) : [...data, next]);
     setSlot({ date: '', time: '' });
+    setEditingId('');
   };
 
+  const edit = (item) => {
+    setSlot({ date: item.date, time: item.time });
+    setEditingId(item.id);
+  };
   const remove = (id) => setData(data.filter((item) => item.id !== id));
   const save = async () => setData(await put('/workshop/slots', { slots: data.filter((item) => !item.booked) }));
 
@@ -22,7 +29,7 @@ export default function WorkshopAvailability() {
       <section className="panel form-grid">
         <input type="date" value={slot.date} onChange={(e) => setSlot({ ...slot, date: e.target.value })} />
         <input type="time" value={slot.time} onChange={(e) => setSlot({ ...slot, time: e.target.value })} />
-        <button className="primary-btn" onClick={add}>Add slot</button>
+        <button className="primary-btn" onClick={saveLocalSlot}>{editingId ? 'Update slot' : 'Add slot'}</button>
         <button className="ghost-btn" onClick={save}>Save slots</button>
       </section>
       <div className="feature-grid three">
@@ -30,7 +37,7 @@ export default function WorkshopAvailability() {
           <article className="compact-card" key={item.id || `${item.date}-${item.time}`}>
             <h3>{item.date}</h3>
             <p>{item.time} {item.booked ? '- booked' : '- available'}</p>
-            {!item.booked && <button className="ghost-btn" onClick={() => remove(item.id)}>Delete</button>}
+            {!item.booked && <div className="actions"><button className="ghost-btn" onClick={() => edit(item)}>Edit</button><button className="ghost-btn" onClick={() => remove(item.id)}>Delete</button></div>}
           </article>
         ))}
       </div>
