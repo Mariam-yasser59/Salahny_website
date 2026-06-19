@@ -1,5 +1,5 @@
 import { db, findById, nextId } from '../data/mockData.js';
-import { notifyBookingStatus, notifyDiagnosticReady } from '../services/emailNotifications.js';
+import { notifyBookingStatus, notifyChatMessage, notifyDiagnosticReady, notifyEmergencyStatus } from '../services/emailNotifications.js';
 
 const activeStatuses = ['accepted', 'in_progress', 'diagnostics_ready', 'repair_in_progress'];
 const guardedStatuses = ['diagnostics_ready', 'repair_in_progress', 'completed'];
@@ -259,6 +259,7 @@ export const updateEmergency = (req, res) => {
   if (!request) return res.status(404).json({ message: 'Emergency request not found' });
   request.status = req.path.endsWith('/accept') ? 'accepted_by_workshop' : req.path.endsWith('/reject') ? 'rejected' : req.body.status || request.status;
   addNotification(request.driverId, 'Emergency request updated', `Workshop updated emergency request to ${request.status}.`, 'emergency');
+  notifyEmergencyStatus(findById('users', request.driverId), request);
   res.json({ success: true, data: request });
 };
 
@@ -272,6 +273,7 @@ export const sendAdminMessage = (req, res) => {
   const message = { id: nextId('am', 'adminWorkshopMessages'), workshopId: workshop.id, senderRole: 'workshop', senderId: req.user.id, text: req.body.text, createdAt: new Date().toISOString(), readByWorkshop: true, readByAdmin: false };
   db.adminWorkshopMessages.push(message);
   addNotification('admin1', 'Workshop message', `${workshop.name}: ${message.text}`, 'chat');
+  notifyChatMessage({ to: process.env.ADMIN_EMAIL || process.env.WORKSHOP_NOTIFICATION_EMAIL || process.env.RESEND_TO_EMAIL, recipientName: 'Salahny admin', senderName: workshop.name, text: message.text, context: 'workshop admin chat' });
   res.status(201).json({ success: true, data: message });
 };
 
@@ -288,6 +290,8 @@ export const sendChatMessage = (req, res) => {
   const message = { id: nextId('bm', 'bookingMessages'), bookingId: booking.id, senderRole: 'workshop', senderId: req.user.id, text: req.body.text, createdAt: new Date().toISOString() };
   db.bookingMessages.push(message);
   addNotification(booking.driverId, 'New workshop message', message.text, 'chat');
+  const driver = findById('users', booking.driverId);
+  notifyChatMessage({ to: driver?.email, recipientName: driver?.name, senderName: currentWorkshop(req.user.id).name, text: message.text, context: 'booking chat' });
   res.status(201).json({ success: true, data: message });
 };
 

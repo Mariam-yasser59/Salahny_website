@@ -116,3 +116,23 @@ export const notifyAccountStatus = (user, status, notes = '') => {
     html: text.split('\n').map((line) => `<p>${line || '&nbsp;'}</p>`).join('')
   }).catch((error) => console.warn(error.message));
 };
+
+export const notifyEmergencyStatus = (driver, request) => {
+  if (!driver?.email) return;
+  sendEmailNotification({
+    to: driver.email,
+    subject: `Your Salahny emergency request is ${request.status}`,
+    text: `Hello ${driver.name},\n\nYour emergency request for ${request.emergencyType || 'roadside assistance'} is now ${request.status}.\nLocation: ${request.address || 'Provided in app'}\n\nSalahny Team`,
+    html: `<p>Hello ${driver.name},</p><p>Your emergency request for <strong>${request.emergencyType || 'roadside assistance'}</strong> is now <strong>${request.status}</strong>.</p><p>Location: ${request.address || 'Provided in app'}</p>`
+  }).catch((error) => console.warn(error.message));
+};
+
+export const notifyChatMessage = ({ to, recipientName = 'there', senderName, text, context = 'Salahny chat' }) => {
+  if (!to) return;
+  sendEmailNotification({
+    to,
+    subject: `New message in ${context}`,
+    text: `Hello ${recipientName},\n\n${senderName || 'Salahny'} sent a new message:\n${text}\n\nOpen Salahny to reply.`,
+    html: `<p>Hello ${recipientName},</p><p><strong>${senderName || 'Salahny'}</strong> sent a new message:</p><blockquote>${text}</blockquote><p>Open Salahny to reply.</p>`
+  }).catch((error) => console.warn(error.message));
+};
