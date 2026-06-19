@@ -9,13 +9,13 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (ready) return <Navigate to="/roles" replace />;
+  if (ready) return <Navigate to="/home" replace />;
 
   return (
     <main className="splash-screen">
       <Logo />
       <div className="splash-loader"><span /></div>
-      <p>Smart automotive care is starting...</p>
+      <p>Workshop operations are starting...</p>
     </main>
   );
 }

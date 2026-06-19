@@ -1,25 +1,40 @@
 import { useState } from 'react';
 import DataTable from '../../components/DataTable.jsx';
 import SectionHeader from '../../components/SectionHeader.jsx';
-import StatusBadge from '../../components/StatusBadge.jsx';
+import { del, post } from '../../services/api.js';
 import { useApi } from '../../hooks/useApi.js';
-import { patch, post } from '../../services/api.js';
 
 export default function WorkshopServices() {
   const { data, setData } = useApi('/workshop/services', []);
-  const [name, setName] = useState('');
-  const add = async () => setData([...data, await post('/workshop/services', { name, category: 'Workshop', price: 500, duration: '1 hr', description: 'Workshop custom service' })]);
-  const toggle = async (row) => setData(data.map((item) => item.id === row.id ? { ...item, enabled: !item.enabled } : item));
+  const [form, setForm] = useState({ name: '', label: '🔧', durationMins: 60, price: 500 });
+
+  const add = async () => {
+    if (!form.name.trim()) return;
+    const service = await post('/workshop/services', form);
+    setData([...data, service]);
+    setForm({ name: '', label: '🔧', durationMins: 60, price: 500 });
+  };
+
+  const remove = async (id) => {
+    await del(`/workshop/services/${id}`);
+    setData(data.filter((item) => item.id !== id));
+  };
+
   return (
     <div className="dash-stack">
-      <SectionHeader title="Services Management" />
-      <div className="form-row"><input placeholder="New service name" value={name} onChange={(e) => setName(e.target.value)} /><button className="primary-btn" onClick={add}>Add service</button></div>
+      <SectionHeader title="Service Catalog" />
+      <section className="panel form-grid">
+        <input placeholder="Service name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        <input placeholder="Emoji or label" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
+        <input type="number" min="5" placeholder="Duration minutes" value={form.durationMins} onChange={(e) => setForm({ ...form, durationMins: Number(e.target.value) })} />
+        <input type="number" min="0" placeholder="Price EGP" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
+        <button className="primary-btn" onClick={add}>Add service</button>
+      </section>
       <DataTable rows={data} columns={[
-        { key: 'name', label: 'Service' },
-        { key: 'price', label: 'Price', render: (row) => `${row.price} EGP` },
-        { key: 'duration', label: 'Duration' },
-        { key: 'enabled', label: 'Status', render: (row) => <StatusBadge value={row.enabled ? 'enabled' : 'disabled'} /> },
-        { key: 'action', label: 'Action', render: (row) => <button className="ghost-btn" onClick={async () => { await patch(`/workshop/services/${row.id}`, { enabled: !row.enabled }); toggle(row); }}>Toggle</button> }
+        { key: 'name', label: 'Service', render: (row) => `${row.label || row.emoji || ''} ${row.name}` },
+        { key: 'durationMins', label: 'Duration', render: (row) => `${row.durationMins || row.duration || 0} min` },
+        { key: 'price', label: 'Price', render: (row) => `${row.price || 0} EGP` },
+        { key: 'action', label: 'Action', render: (row) => <button className="ghost-btn" onClick={() => remove(row.id)}>Delete</button> }
       ]} />
     </div>
   );

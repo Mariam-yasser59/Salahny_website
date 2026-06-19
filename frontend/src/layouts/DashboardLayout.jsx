@@ -9,6 +9,9 @@ export default function DashboardLayout({ role }) {
   const navigate = useNavigate();
 
   if (!user || user.role !== role) return <Navigate to={`/login/${role}`} replace />;
+  if (role === 'workshop' && ['pending', 'rejected', 'suspended', 'deleted'].includes(String(user.status || user.verificationStatus || '').toLowerCase())) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="dashboard-shell">

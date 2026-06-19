@@ -4,23 +4,18 @@ import { STORAGE_KEYS } from '../config/api.js';
 
 const AuthContext = createContext(null);
 
+const blockedWorkshopStatuses = ['pending', 'rejected', 'suspended', 'deleted'];
+
 const normalizeRole = (role) => {
-  const clean = String(role || 'driver').toLowerCase();
-  if (['admin', 'super_admin', 'superadmin'].includes(clean)) return 'admin';
-  if (clean === 'workshop') return 'workshop';
-  return 'driver';
+  const clean = String(role || 'workshop').toLowerCase();
+  return clean === 'workshop' ? 'workshop' : clean;
 };
 
 const normalizeAuth = (data, requestedRole) => {
   const payload = data.data || data;
-
   const token = payload.token || data.token || data.accessToken || data.jwt;
   const sourceUser = payload.user || data.user || {};
-
-  const user = {
-    ...sourceUser,
-    role: normalizeRole(sourceUser.role || requestedRole)
-  };
+  const user = { ...sourceUser, role: normalizeRole(sourceUser.role || requestedRole) };
 
   return { token, user };
 };
@@ -30,14 +25,15 @@ export const AuthProvider = ({ children }) => {
     JSON.parse(localStorage.getItem(STORAGE_KEYS.user) || 'null')
   );
 
-  const login = async ({ email, password, role }) => {
-    const data = await post('/auth/login', {
-      email,
-      password,
-      expectedRole: role
-    });
+  const login = async ({ email, password }) => {
+    const data = await post('/auth/login', { email, password, role: 'workshop', expectedRole: 'workshop' });
+    const auth = normalizeAuth(data, 'workshop');
 
-    const auth = normalizeAuth(data, role);
+    if (auth.user.role !== 'workshop') throw new Error('Only workshop accounts can access this portal.');
+    const status = String(auth.user.status || auth.user.verificationStatus || '').toLowerCase();
+    if (blockedWorkshopStatuses.includes(status)) {
+      throw new Error(`Workshop account is ${auth.user.status || auth.user.verificationStatus}. Admin approval is required before portal access.`);
+    }
 
     localStorage.setItem(STORAGE_KEYS.token, auth.token);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(auth.user));
@@ -46,9 +42,10 @@ export const AuthProvider = ({ children }) => {
     return auth.user;
   };
 
-  const register = async (role, payload) => {
-    const data = await post('/auth/register', { ...payload, role });
-    const auth = normalizeAuth(data, role);
+  const register = async (_role, payload) => {
+    if (payload instanceof FormData) payload.set('role', 'workshop');
+    const data = await post('/auth/register', payload instanceof FormData ? payload : { ...payload, role: 'workshop' });
+    const auth = normalizeAuth(data, 'workshop');
 
     localStorage.setItem(STORAGE_KEYS.token, auth.token);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(auth.user));
