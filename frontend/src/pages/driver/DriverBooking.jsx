@@ -1,33 +1,202 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import SectionHeader from '../../components/SectionHeader.jsx';
 import { useApi } from '../../hooks/useApi.js';
 import { post } from '../../services/api.js';
 
 export default function DriverBooking() {
-  const { data: vehicles } = useApi('/driver/vehicles', []);
-  const { data: services } = useApi('/driver/services', []);
-  const { data: workshops } = useApi('/driver/workshops', []);
-  const [form, setForm] = useState({ serviceId: '', vehicleId: '', workshopId: '', date: '2026-04-28', time: '10:30', issue: '' });
+  const { data: vehicles } = useApi('/vehicles', []);
+  const { data: services } = useApi('/services', []);
+  const { data: workshops } = useApi('/workshops', []);
+
+  const toList = (data, key) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.[key])) return data[key];
+    if (Array.isArray(data?.data?.[key])) return data.data[key];
+    return [];
+  };
+
+  const vehiclesList = toList(vehicles, 'vehicles');
+  const servicesList = toList(services, 'services');
+  const workshopsList = toList(workshops, 'workshops');
+
+  const [form, setForm] = useState({
+    serviceId: '',
+    vehicleId: '',
+    workshopId: '',
+    slot: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    issue: ''
+  });
+
   const [created, setCreated] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  const selectedWorkshop = workshopsList.find(
+    (item) => (item._id || item.id) === form.workshopId
+  );
+
+  const selectedService = servicesList.find(
+    (item) => (item._id || item.id || item.name) === form.serviceId
+  );
+
+  const selectedVehicle = vehiclesList.find(
+    (item) => (item._id || item.id) === form.vehicleId
+  );
+
+  const availableSlots = useMemo(() => {
+    return selectedWorkshop?.availableSlots || [];
+  }, [selectedWorkshop]);
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Location is not supported in this browser');
+      return;
+    }
+
+    setLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        setForm((old) => ({
+          ...old,
+          latitude,
+          longitude,
+          address: `Current location: ${latitude}, ${longitude}`
+        }));
+
+        setLocationLoading(false);
+      },
+      () => {
+        alert('Please allow location permission');
+        setLocationLoading(false);
+      }
+    );
+  };
 
   const submit = async (event) => {
     event.preventDefault();
-    setCreated(await post('/driver/bookings', form));
+
+    const payload = {
+      workshop: form.workshopId,
+      service: selectedService?.name || form.serviceId,
+      serviceId: form.serviceId,
+      date: form.slot,
+      vehicleId: form.vehicleId,
+      vehicleLabel: selectedVehicle
+        ? `${selectedVehicle.make} ${selectedVehicle.model} - ${selectedVehicle.plate}`
+        : '',
+      address: form.address,
+      latitude: form.latitude,
+      longitude: form.longitude,
+      locationNotes: form.issue,
+      paymentMethod: 'Cash on Service',
+      total: selectedService?.price || 0
+    };
+
+    const response = await post('/bookings', payload);
+    setCreated(response?.data || response);
   };
 
   return (
     <div className="dash-stack">
-      <SectionHeader title="Services Booking">Choose service, vehicle, workshop, and a preferred appointment time.</SectionHeader>
+      <SectionHeader title="Services Booking">
+        Choose service, vehicle, workshop, and available workshop appointment.
+      </SectionHeader>
+
       <form className="panel form-grid" onSubmit={submit}>
-        <select required onChange={(e) => setForm({ ...form, serviceId: e.target.value })}><option value="">Choose service</option>{services.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select>
-        <select required onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}><option value="">Choose vehicle</option>{vehicles.map((item) => <option value={item.id} key={item.id}>{item.make} {item.model}</option>)}</select>
-        <select required onChange={(e) => setForm({ ...form, workshopId: e.target.value })}><option value="">Choose workshop</option>{workshops.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select>
-        <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-        <input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
-        <textarea placeholder="Problem description" onChange={(e) => setForm({ ...form, issue: e.target.value })} />
+        <select
+          required
+          value={form.serviceId}
+          onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
+        >
+          <option value="">Choose service</option>
+          {servicesList.map((item) => (
+            <option value={item._id || item.id || item.name} key={item._id || item.id || item.name}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          required
+          value={form.vehicleId}
+          onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
+        >
+          <option value="">Choose vehicle</option>
+          {vehiclesList.map((item) => (
+            <option value={item._id || item.id} key={item._id || item.id}>
+              {item.make} {item.model} - {item.plate}
+            </option>
+          ))}
+        </select>
+
+        <select
+          required
+          value={form.workshopId}
+          onChange={(e) => setForm({ ...form, workshopId: e.target.value, slot: '' })}
+        >
+          <option value="">Choose workshop</option>
+          {workshopsList.map((item) => (
+            <option value={item._id || item.id} key={item._id || item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          required
+          value={form.slot}
+          onChange={(e) => setForm({ ...form, slot: e.target.value })}
+          disabled={!form.workshopId}
+        >
+          <option value="">
+            {form.workshopId ? 'Choose available slot' : 'Choose workshop first'}
+          </option>
+
+          {availableSlots.map((slot) => (
+            <option value={slot} key={slot}>
+              {new Date(slot).toLocaleString()}
+            </option>
+          ))}
+        </select>
+
+        {vehiclesList.length === 0 && (
+          <p style={{ color: '#ff6b8a', gridColumn: '1 / -1' }}>
+            No vehicles found. Add a vehicle first from My Vehicles, then come back.
+          </p>
+        )}
+
+        <input
+          required
+          placeholder="Pickup / service address"
+          value={form.address}
+          onChange={(e) => setForm({ ...form, address: e.target.value })}
+        />
+
+        <button type="button" className="ghost-btn" onClick={useMyLocation}>
+          {locationLoading ? 'Getting location...' : 'Use my current location'}
+        </button>
+
+        <textarea
+          placeholder="Problem description"
+          value={form.issue}
+          onChange={(e) => setForm({ ...form, issue: e.target.value })}
+        />
+
         <button className="primary-btn">Confirm booking</button>
       </form>
-      {created && <article className="success-card">Booking confirmed: {created.service?.name} at {created.workshop?.name}</article>}
+
+      {created && (
+        <article className="success-card">
+          Booking confirmed: {created.service} with {created.workshop?.name}
+        </article>
+      )}
     </div>
   );
 }

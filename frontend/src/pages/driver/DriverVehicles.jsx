@@ -6,27 +6,126 @@ import { useApi } from '../../hooks/useApi.js';
 import { post, del } from '../../services/api.js';
 
 export default function DriverVehicles() {
-  const { data: vehicles, setData } = useApi('/driver/vehicles', []);
-  const [form, setForm] = useState({ make: '', model: '', year: 2024, plate: '', vin: '' });
+  const { data: vehicles, setData } = useApi('/vehicles', []);
+
+  const [form, setForm] = useState({
+    make: '',
+    model: '',
+    year: 2024,
+    plate: '',
+    color: '',
+    fuel: '',
+    mileage: 0
+  });
+
+  const vehiclesList = Array.isArray(vehicles)
+    ? vehicles
+    : vehicles?.data || vehicles?.vehicles || [];
+
   const add = async () => {
-    const vehicle = await post('/driver/vehicles', form);
-    setData([...vehicles, vehicle]);
-    setForm({ make: '', model: '', year: 2024, plate: '', vin: '' });
+    const response = await post('/vehicles', form);
+    const vehicle = response?.data || response?.vehicle || response;
+
+    setData([vehicle, ...vehiclesList]);
+
+    setForm({
+      make: '',
+      model: '',
+      year: 2024,
+      plate: '',
+      color: '',
+      fuel: '',
+      mileage: 0
+    });
   };
+
   const remove = async (id) => {
-    await del(`/driver/vehicles/${id}`);
-    setData(vehicles.filter((vehicle) => vehicle.id !== id));
+    await del(`/vehicles/${id}`);
+
+    setData(
+      vehiclesList.filter(
+        (vehicle) => vehicle._id !== id && vehicle.id !== id
+      )
+    );
   };
 
   return (
     <div className="dash-stack">
-      <SectionHeader title="My Vehicles" action={<button className="primary-btn" onClick={add}><Plus size={16} /> Add vehicle</button>} />
+      <SectionHeader
+        title="My Vehicles"
+        action={
+          <button className="primary-btn" onClick={add}>
+            <Plus size={16} /> Add vehicle
+          </button>
+        }
+      />
+
       <div className="form-row">
-        {['make', 'model', 'plate', 'vin'].map((key) => <input key={key} placeholder={key.toUpperCase()} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />)}
-        <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} />
+        {['make', 'model', 'plate', 'color', 'fuel'].map((key) => (
+          <input
+            key={key}
+            placeholder={key.toUpperCase()}
+            value={form[key]}
+            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+          />
+        ))}
+
+        <input
+          type="number"
+          placeholder="YEAR"
+          value={form.year}
+          onChange={(e) =>
+            setForm({ ...form, year: Number(e.target.value) })
+          }
+        />
+
+        <input
+          type="number"
+          placeholder="MILEAGE"
+          value={form.mileage}
+          onChange={(e) =>
+            setForm({ ...form, mileage: Number(e.target.value) })
+          }
+        />
       </div>
+
       <div className="feature-grid two">
-        {vehicles.map((vehicle) => <article className="feature-card" key={vehicle.id}><Car /><h3>{vehicle.make} {vehicle.model}</h3><p>{vehicle.year} · {vehicle.plate} · {vehicle.mileage} km</p><StatusBadge value={vehicle.obdStatus} /><strong>Health {vehicle.health}%</strong><button className="ghost-btn" onClick={() => remove(vehicle.id)}>Delete</button></article>)}
+        {vehiclesList.map((vehicle) => {
+          const vehicleId = vehicle._id || vehicle.id;
+
+          return (
+            <article className="feature-card" key={vehicleId}>
+              <Car />
+
+              <h3>
+                {vehicle.make} {vehicle.model}
+              </h3>
+
+              <p>
+                {vehicle.year} · {vehicle.plate} · {vehicle.mileage || 0} km
+              </p>
+
+              {(vehicle.color || vehicle.fuel) && (
+                <p>
+                  {vehicle.color}
+                  {vehicle.color && vehicle.fuel ? ' · ' : ''}
+                  {vehicle.fuel}
+                </p>
+              )}
+
+              <StatusBadge value={vehicle.obdStatus || 'Connected'} />
+
+              <strong>Health {vehicle.health || 100}%</strong>
+
+              <button
+                className="ghost-btn"
+                onClick={() => remove(vehicleId)}
+              >
+                Delete
+              </button>
+            </article>
+          );
+        })}
       </div>
     </div>
   );
