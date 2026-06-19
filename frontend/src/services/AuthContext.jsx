@@ -20,10 +20,34 @@ const normalizeAuth = (data, requestedRole) => {
   return { token, user };
 };
 
+const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
+const readStoredUser = () => {
+  if (!canUseStorage()) return null;
+
+  try {
+    return JSON.parse(window.localStorage.getItem(STORAGE_KEYS.user) || 'null');
+  } catch (_error) {
+    window.localStorage.removeItem(STORAGE_KEYS.token);
+    window.localStorage.removeItem(STORAGE_KEYS.user);
+    return null;
+  }
+};
+
+const writeAuth = (token, user) => {
+  if (!canUseStorage()) return;
+  window.localStorage.setItem(STORAGE_KEYS.token, token);
+  window.localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+};
+
+const clearStoredAuth = () => {
+  if (!canUseStorage()) return;
+  window.localStorage.removeItem(STORAGE_KEYS.token);
+  window.localStorage.removeItem(STORAGE_KEYS.user);
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() =>
-    JSON.parse(localStorage.getItem(STORAGE_KEYS.user) || 'null')
-  );
+  const [user, setUser] = useState(readStoredUser);
 
   const login = async ({ email, password }) => {
     const data = await post('/auth/login', { email, password, role: 'workshop', expectedRole: 'workshop' });
@@ -35,8 +59,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error(`Workshop account is ${auth.user.status || auth.user.verificationStatus}. Admin approval is required before portal access.`);
     }
 
-    localStorage.setItem(STORAGE_KEYS.token, auth.token);
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(auth.user));
+    writeAuth(auth.token, auth.user);
 
     setUser(auth.user);
     return auth.user;
@@ -55,10 +78,9 @@ export const AuthProvider = ({ children }) => {
     const data = await post('/auth/register', { ...registerPayload, role: 'workshop' });
     const auth = normalizeAuth(data, 'workshop');
 
-    localStorage.setItem(STORAGE_KEYS.token, auth.token);
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(auth.user));
+    writeAuth(auth.token, auth.user);
 
-    if (documentFile instanceof File) {
+    if (typeof File !== 'undefined' && documentFile instanceof File) {
       const documentPayload = new FormData();
       documentPayload.append('kind', documentType);
       documentPayload.append('file', documentFile);
@@ -70,8 +92,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem(STORAGE_KEYS.token);
-    localStorage.removeItem(STORAGE_KEYS.user);
+    clearStoredAuth();
     setUser(null);
   };
 

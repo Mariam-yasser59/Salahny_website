@@ -21,7 +21,12 @@ const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.FRONTEND_URL,
   process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '',
-  'http://localhost:5173'
+  'http://localhost:5050',
+  'http://127.0.0.1:5050',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173'
 ].filter(Boolean);
 
 app.use(cors({

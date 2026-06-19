@@ -1,11 +1,17 @@
 import { API_BASE_URL, STORAGE_KEYS } from '../config/api.js';
 import { fallbackBookings, fallbackServices } from '../data/fallbackData.js';
 
-const token = () => localStorage.getItem(STORAGE_KEYS.token);
+const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
+const token = () => {
+  if (!canUseStorage()) return null;
+  return window.localStorage.getItem(STORAGE_KEYS.token);
+};
 
 const clearAuth = () => {
-  localStorage.removeItem(STORAGE_KEYS.token);
-  localStorage.removeItem(STORAGE_KEYS.user);
+  if (!canUseStorage()) return;
+  window.localStorage.removeItem(STORAGE_KEYS.token);
+  window.localStorage.removeItem(STORAGE_KEYS.user);
 };
 
 const request = async (path, options = {}) => {
@@ -18,7 +24,7 @@ const request = async (path, options = {}) => {
 
   if (response.status === 401) {
     clearAuth();
-    window.location.href = '/login';
+    if (typeof window !== 'undefined') window.location.href = '/login';
     throw new Error(data.message || 'Session expired. Please login again.');
   }
 
