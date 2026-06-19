@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react';
-import { post } from './api.js';
+import { post, uploadDocument } from './api.js';
 import { STORAGE_KEYS } from '../config/api.js';
 
 const AuthContext = createContext(null);
@@ -43,12 +43,27 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (_role, payload) => {
-    if (payload instanceof FormData) payload.set('role', 'workshop');
-    const data = await post('/auth/register', payload instanceof FormData ? payload : { ...payload, role: 'workshop' });
+    let documentFile = null;
+    let documentType = 'commercial_registration';
+    let registerPayload = payload;
+    if (payload instanceof FormData) {
+      documentFile = payload.get('verificationDocument');
+      documentType = payload.get('documentType') || documentType;
+      registerPayload = Object.fromEntries(payload.entries());
+      delete registerPayload.verificationDocument;
+    }
+    const data = await post('/auth/register', { ...registerPayload, role: 'workshop' });
     const auth = normalizeAuth(data, 'workshop');
 
     localStorage.setItem(STORAGE_KEYS.token, auth.token);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(auth.user));
+
+    if (documentFile instanceof File) {
+      const documentPayload = new FormData();
+      documentPayload.append('kind', documentType);
+      documentPayload.append('file', documentFile);
+      await uploadDocument(documentPayload);
+    }
 
     setUser(auth.user);
     return auth.user;

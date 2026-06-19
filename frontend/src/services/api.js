@@ -174,12 +174,12 @@ export const api = async (path, options = {}) => {
   if (!options.method || options.method === 'GET') return virtualGet(path);
 
   if (path === '/auth/register') {
+    if (!(options.body instanceof FormData)) return request('/auth/register', options);
     return request('/auth/register/workshop', options).catch(() => {
-      if (!(options.body instanceof FormData)) throw new Error('Workshop registration failed');
       const json = Object.fromEntries(options.body.entries());
       json.verificationDocumentName = json.verificationDocument?.name;
       delete json.verificationDocument;
-      return request('/auth/register/workshop', { ...options, body: JSON.stringify(json) });
+      return request('/auth/register', { ...options, body: JSON.stringify(json) });
     });
   }
 
@@ -232,3 +232,4 @@ export const post = (path, body) => api(path, { method: 'POST', body: body insta
 export const put = (path, body) => api(path, { method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body) });
 export const patch = (path, body) => api(path, { method: 'PATCH', body: body instanceof FormData ? body : JSON.stringify(body) });
 export const del = (path) => api(path, { method: 'DELETE' });
+export const uploadDocument = (body) => request('/documents', { method: 'POST', body });
