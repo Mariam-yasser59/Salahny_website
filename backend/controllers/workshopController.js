@@ -1,4 +1,5 @@
 import { db, findById, nextId } from '../data/mockData.js';
+import { notifyBookingStatus } from '../services/emailNotifications.js';
 
 const currentWorkshop = (userId) => db.workshops.find((workshop) => workshop.userId === userId) || db.workshops[0];
 const jobView = (booking) => ({
@@ -41,7 +42,9 @@ export const updateRequestStatus = (req, res) => {
   booking.status = req.body.status || booking.status;
   booking.progress = booking.status === 'completed' ? 100 : booking.status === 'in_progress' ? 55 : booking.progress;
   booking.timeline = [...new Set([...booking.timeline, req.body.label || booking.status])];
-  res.json(jobView(booking));
+  const updated = jobView(booking);
+  notifyBookingStatus(updated, booking.status);
+  res.json(updated);
 };
 
 export const activeJobs = (req, res) => {

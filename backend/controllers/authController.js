@@ -1,5 +1,6 @@
 import { db, nextId } from '../data/mockData.js';
 import { signToken } from '../middleware/auth.js';
+import { notifyWorkshopRegistration } from '../services/emailNotifications.js';
 
 const publicUser = (user) => {
   const { password, ...safeUser } = user;
@@ -45,6 +46,7 @@ export const registerWorkshop = (req, res) => {
   db.users.push(user);
   db.workshops.push(workshop);
   db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: 'user_registered', actor: name, message: 'Workshop registered and awaits verification', date: new Date().toLocaleString() });
+  notifyWorkshopRegistration(workshop, user);
   res.status(201).json({ token: signToken(user), user: publicUser(user), workshop });
 };
 
