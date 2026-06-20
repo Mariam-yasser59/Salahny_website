@@ -24,7 +24,7 @@ export default function DriverBooking() {
     serviceId: '',
     vehicleId: '',
     workshopId: '',
-    slot: '',
+    slotIndex: '',
     address: '',
     latitude: '',
     longitude: '',
@@ -58,27 +58,25 @@ export default function DriverBooking() {
       [];
 
     if (Array.isArray(slots)) return slots;
-
     if (Array.isArray(slots?.slots)) return slots.slots;
     if (Array.isArray(slots?.availableSlots)) return slots.availableSlots;
-
     return [];
   }, [selectedWorkshop]);
 
   const getSlotValue = (slot) => {
     if (typeof slot === 'string') return slot;
-    return slot.date || slot.datetime || slot.time || slot.startTime || slot.start || '';
+    return slot.value || slot.id || slot.date || slot.datetime || slot.time || slot.startTime || slot.start || '';
   };
 
   const getSlotLabel = (slot) => {
     const value = getSlotValue(slot);
-    if (!value) return 'Available slot';
-
     const date = new Date(value);
     if (!Number.isNaN(date.getTime())) return date.toLocaleString();
-
-    return String(value);
+    return String(value || 'Available slot');
   };
+
+  const selectedSlot = form.slotIndex !== '' ? availableSlots[Number(form.slotIndex)] : null;
+  const selectedSlotValue = selectedSlot ? getSlotValue(selectedSlot) : '';
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -116,7 +114,7 @@ export default function DriverBooking() {
       workshop: form.workshopId,
       service: selectedService?.name || form.serviceId,
       serviceId: form.serviceId,
-      date: form.slot,
+      date: selectedSlotValue,
       vehicleId: form.vehicleId,
       vehicleLabel: selectedVehicle
         ? `${selectedVehicle.make} ${selectedVehicle.model} - ${selectedVehicle.plate}`
@@ -169,7 +167,7 @@ export default function DriverBooking() {
         <select
           required
           value={form.workshopId}
-          onChange={(e) => setForm({ ...form, workshopId: e.target.value, slot: '' })}
+          onChange={(e) => setForm({ ...form, workshopId: e.target.value, slotIndex: '' })}
         >
           <option value="">Choose workshop</option>
           {workshopsList.map((item) => (
@@ -181,8 +179,8 @@ export default function DriverBooking() {
 
         <select
           required
-          value={form.slot}
-          onChange={(e) => setForm({ ...form, slot: e.target.value })}
+          value={form.slotIndex}
+          onChange={(e) => setForm({ ...form, slotIndex: e.target.value })}
           disabled={!form.workshopId}
         >
           <option value="">
@@ -193,15 +191,11 @@ export default function DriverBooking() {
               : 'Choose workshop first'}
           </option>
 
-          {availableSlots.map((slot, index) => {
-            const value = getSlotValue(slot);
-
-            return (
-              <option value={value} key={value || index}>
-                {getSlotLabel(slot)}
-              </option>
-            );
-          })}
+          {availableSlots.map((slot, index) => (
+            <option value={index} key={`${getSlotValue(slot)}-${index}`}>
+              {getSlotLabel(slot)}
+            </option>
+          ))}
         </select>
 
         <input

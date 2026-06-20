@@ -9,7 +9,7 @@ const token = () => {
 };
 
 const clearAuth = () => {
-  if (!canUseStorage()) return;[]
+  if (!canUseStorage()) return;
   window.localStorage.removeItem(STORAGE_KEYS.token);
   window.localStorage.removeItem(STORAGE_KEYS.user);
 };
@@ -69,9 +69,9 @@ const withFallback = async (primary, fallback) => {
 const virtualGet = async (path) => {
   if (path === '/public/landing') {
     const [services, packagesData, workshops] = await Promise.all([
-      request('/public/landing').then((data) => data.services || data).catch(() => fallbackServices),
-      request('/public/landing').then((data) => data.packages || data).catch(() => fallbackPackages),
-      request('/public/landing').then((data) => data.workshops || data).catch(() => fallbackWorkshops)
+      request('/services').catch(() => fallbackServices),
+      request('/packages').catch(() => fallbackPackages),
+      request('/workshops').catch(() => fallbackWorkshops)
     ]);
 
     return {
@@ -84,10 +84,10 @@ const virtualGet = async (path) => {
 
   if (path === '/driver/dashboard') {
     const [me, vehicles, bookings, workshops, notifications] = await Promise.all([
-      request('/driver/profile').catch(() => null),
-      request('/driver/vehicles').catch(() => []),
-      request('/driver/bookings').catch(() => fallbackBookings),
-      request('/driver/workshops').catch(() => []),
+      request('/users/me').catch(() => null),
+      request('/vehicles').catch(() => []),
+      request('/bookings').catch(() => fallbackBookings),
+      request('/workshops').catch(() => fallbackWorkshops),
       request('/notifications').catch(() => [])
     ]);
 
@@ -107,19 +107,22 @@ const virtualGet = async (path) => {
     };
   }
 
-  if (path === '/driver/vehicles') return normalizeList(await request('/driver/vehicles'), ['vehicles']);
-  if (path === '/driver/services') return normalizeList(await request('/driver/services').catch(() => fallbackServices), ['services']);
-  if (path === '/driver/workshops') return normalizeList(await request('/driver/workshops').catch(() => []), ['workshops']);
-  if (path === '/vehicles') return normalizeList(await request('/driver/vehicles'), ['vehicles']);
-  if (path === '/services') return normalizeList(await request('/driver/services').catch(() => []), ['services']);
-  if (path === '/workshops') return normalizeList(await request('/driver/workshops').catch(() => []), ['workshops']);
-  if (path.startsWith('/driver/workshops/')) return request(`/driver/workshops/${path.split('/').pop()}`);
-  if (path === '/driver/bookings') return normalizeList(await request('/driver/bookings').catch(() => fallbackBookings), ['bookings']).map(adaptBooking);
-  if (path.startsWith('/driver/bookings/')) return adaptBooking(await request(`/driver/bookings/${path.split('/').pop()}`));
+  if (path === '/driver/vehicles') return normalizeList(await request('/vehicles'), ['vehicles']);
+  if (path === '/driver/services') return normalizeList(await request('/services').catch(() => fallbackServices), ['services']);
+  if (path === '/driver/workshops') return normalizeList(await request('/workshops').catch(() => fallbackWorkshops), ['workshops']);
+
+  if (path === '/vehicles') return normalizeList(await request('/vehicles'), ['vehicles']);
+  if (path === '/services') return normalizeList(await request('/services').catch(() => fallbackServices), ['services']);
+  if (path === '/workshops') return normalizeList(await request('/workshops').catch(() => fallbackWorkshops), ['workshops']);
+
+  if (path.startsWith('/driver/workshops/')) return request(`/workshops/${path.split('/').pop()}`);
+  if (path === '/driver/bookings') return normalizeList(await request('/bookings').catch(() => fallbackBookings), ['bookings']).map(adaptBooking);
+  if (path.startsWith('/driver/bookings/')) return adaptBooking(await request(`/bookings/${path.split('/').pop()}`));
+
   if (path === '/driver/diagnostics') return normalizeList(await request('/driver/diagnostics').catch(() => []), ['diagnostics']);
-  if (path === '/driver/profile') return request('/driver/profile').then((data) => data.user || data);
-  if (path === '/driver/chat') return normalizeList(await request('/driver/chat'), ['rooms', 'chats', 'messages']);
-  if (path === '/driver/notifications') return normalizeList(await request('/notifications'), ['notifications']);
+  if (path === '/driver/profile') return request('/users/me').then((data) => data.user || data);
+  if (path === '/driver/chat') return normalizeList(await request('/driver/chat').catch(() => []), ['rooms', 'chats', 'messages']);
+  if (path === '/driver/notifications') return normalizeList(await request('/notifications').catch(() => []), ['notifications']);
 
   if (path === '/workshop/dashboard') {
     return withFallback(
@@ -167,7 +170,7 @@ const virtualGet = async (path) => {
   if (path === '/workshop/services') {
     return withFallback(
       () => request('/workshop-portal/services').then((data) => normalizeList(data, ['services', 'data'])),
-      () => request('/workshop/services').then((data) => normalizeList(data, ['services', 'data'])).catch(() => [])
+      () => request('/workshop/services').then((data) => normalizeList(data, ['services', 'data'])).catch(() => fallbackServices)
     );
   }
 
@@ -236,9 +239,19 @@ const virtualGet = async (path) => {
       () => Promise.resolve([])
     );
   }
+
   if (path === '/workshop/documents') return request('/documents').then((data) => normalizeList(data, ['documents', 'data']));
 
-  if (path === '/admin/dashboard') return request('/admin/dashboard').catch(() => ({ totalUsers: 128, totalDrivers: 96, totalWorkshops: 18, totalBookings: fallbackBookings.length, revenue: 191900, pendingApprovals: 4, recentActivity: [] }));
+  if (path === '/admin/dashboard') return request('/admin/dashboard').catch(() => ({
+    totalUsers: 128,
+    totalDrivers: 96,
+    totalWorkshops: 18,
+    totalBookings: fallbackBookings.length,
+    revenue: 191900,
+    pendingApprovals: 4,
+    recentActivity: []
+  }));
+
   if (path === '/admin/approvals') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['pending', 'inactive'].includes(item.status));
   if (path === '/admin/drivers') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['driver', 'user'].includes(String(item.role).toLowerCase()));
   if (path === '/admin/workshops') return normalizeList(await request('/admin/workshops').catch(() => fallbackWorkshops), ['workshops']);
@@ -259,6 +272,7 @@ export const api = async (path, options = {}) => {
       const body = JSON.parse(options.body || '{}');
       return request(`/auth/register/${body.role || 'driver'}`, options);
     }
+
     return request('/auth/register/workshop', options).catch(() => {
       const json = Object.fromEntries(options.body.entries());
       json.verificationDocumentName = json.verificationDocument?.name;
@@ -267,71 +281,107 @@ export const api = async (path, options = {}) => {
     });
   }
 
-  if (path === '/driver/vehicles') return request('/driver/vehicles', options);
-  if (path.startsWith('/driver/vehicles/')) return request(`/driver/vehicles/${path.split('/').pop()}`, options);
-  if (path === '/driver/bookings') return request('/driver/bookings', options);
+  if (path === '/driver/vehicles') return request('/vehicles', options);
+  if (path.startsWith('/driver/vehicles/')) return request(`/vehicles/${path.split('/').pop()}`, options);
+  if (path === '/driver/bookings') return request('/bookings', options);
   if (path === '/driver/diagnostics') return request('/driver/diagnostics', options);
   if (path.startsWith('/driver/emergency/')) return request(`/${path.split('/').pop()}`, options);
 
+  if (path === '/vehicles') return request('/vehicles', options);
+  if (path.startsWith('/vehicles/')) return request(`/vehicles/${path.split('/').pop()}`, options);
+  if (path === '/bookings') return request('/bookings', options);
+
   if (path === '/workshop/services') return request('/workshop-portal/services', options).then(payload).catch(() => request('/workshop/services', options));
+
   if (path.startsWith('/workshop/services/')) {
     const id = path.split('/').pop();
     if (options.method === 'DELETE') return request(`/workshop-portal/services/${id}`, options).catch(() => request(`/workshop/services/${id}`, options));
   }
-  if (path === '/workshop/slots') return request('/workshop-portal/slots', { ...options, method: 'PUT' }).then((data) => (payload(data) || []).map((slot) => ({ id: slot, value: slot, date: String(slot).slice(0, 10), time: String(slot).slice(11, 16), booked: false })));
+
+  if (path === '/workshop/slots') {
+    return request('/workshop-portal/slots', { ...options, method: 'PUT' }).then((data) => {
+      const result = payload(data);
+      const slots = Array.isArray(result) ? result : result?.availableSlots || result?.slots || [];
+      return slots.map((slot) => ({
+        id: slot,
+        value: slot,
+        date: String(slot).slice(0, 10),
+        time: String(slot).slice(11, 16),
+        booked: false
+      }));
+    });
+  }
+
   if (path.startsWith('/workshop/bookings/') && path.endsWith('/status')) {
     const id = path.split('/')[3];
     return request(`/workshop-portal/bookings/${id}/status`, options).then(payload).catch(() => request(`/workshop/requests/${id}/status`, options));
   }
+
   if (path.startsWith('/workshop/diagnostics/') && path.endsWith('/run')) {
     const id = path.split('/')[3];
     return request(`/diagnostics/workshop/${id}/run`, options).then(payload);
   }
+
   if (path.startsWith('/workshop/diagnostics/') && path.endsWith('/upload-obd')) {
     const id = path.split('/')[3];
     return request(`/diagnostics/workshop/${id}/upload-obd`, options).then(payload);
   }
+
   if (path.startsWith('/workshop/diagnostics/') && path.endsWith('/share')) {
     const id = path.split('/')[3];
     return request(`/chat/bookings/${id}/share-diagnostic`, options).then(payload);
   }
+
   if (path.startsWith('/workshop/chat/') && path.endsWith('/messages')) {
     const id = path.split('/')[3];
     return request(`/chat/bookings/${id}/messages`, options).then(payload);
   }
+
   if (path === '/workshop/admin/messages') return request('/workshop-portal/admin/messages', options).then(payload);
+
   if (path.startsWith('/workshop/emergency/')) {
     const [, , , id, action] = path.split('/');
     if (action === 'accept' || action === 'reject') return request(`/emergency/${id}/${action}`, options).then(payload);
     return request(`/emergency/${id}/status`, options).then(payload);
   }
+
   if (path.startsWith('/workshop/tracking/')) {
     const id = path.split('/').pop();
     return request(`/tracking/${id}`, options).then(payload);
   }
+
   if (path === '/workshop/profile') {
     const body = JSON.parse(options.body || '{}');
     const id = body.id || body._id || 'me';
     return request(`/workshops/${id}`, options).catch(() => request('/workshop/profile', options));
   }
 
-  if (path === '/bookings') return request('/driver/bookings', options);
-
   return request(path, options);
 };
 
-export const post = (path, body) => api(path, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) });
-export const put = (path, body) => api(path, { method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body) });
-export const patch = (path, body) => api(path, { method: 'PATCH', body: body instanceof FormData ? body : JSON.stringify(body) });
-export const del = (path) => api(path, { method: 'DELETE' });
+export const post = (path, body) =>
+  api(path, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) });
+
+export const put = (path, body) =>
+  api(path, { method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body) });
+
+export const patch = (path, body) =>
+  api(path, { method: 'PATCH', body: body instanceof FormData ? body : JSON.stringify(body) });
+
+export const del = (path) =>
+  api(path, { method: 'DELETE' });
+
 export const uploadDocument = async (body) => {
   if (!(body instanceof FormData)) return request('/documents', { method: 'POST', body: JSON.stringify(body) });
+
   const file = body.get('file') || body.get('verificationDocument');
+
   const metadata = {
     kind: body.get('kind') || body.get('documentType') || 'commercial_registration',
     fileName: file?.name || body.get('fileName') || 'verification-document',
     mimeType: file?.type || 'application/octet-stream',
     size: file?.size || 0
   };
+
   return request('/documents', { method: 'POST', body: JSON.stringify(metadata) }).then(payload);
 };
