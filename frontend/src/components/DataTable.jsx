@@ -1,4 +1,4 @@
-export default function DataTable({ columns, rows, empty = 'No data available' }) {
+export default function DataTable({ columns = [], rows = [], empty = 'No data available' }) {
   return (
     <div className="table-card">
       <table>

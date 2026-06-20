@@ -11,11 +11,12 @@ export default function WorkshopChat() {
   const [driverText, setDriverText] = useState('');
   const { data: adminMessages, setData: setAdminMessages } = useApi('/workshop/admin/messages', []);
   const { data: bookingChat, setData: setBookingChat } = useApi(bookingId ? `/workshop/chat/${bookingId}` : '/workshop/chat/none', { messages: [] });
+  const adminThread = Array.isArray(adminMessages) ? adminMessages : adminMessages?.messages || adminMessages?.data?.messages || [];
 
   const sendAdmin = async () => {
     if (!adminText.trim()) return;
     const message = await post('/workshop/admin/messages', { text: adminText });
-    setAdminMessages([...adminMessages, message]);
+    setAdminMessages([...adminThread, message]);
     setAdminText('');
   };
 
@@ -43,7 +44,7 @@ export default function WorkshopChat() {
         </section>
         <section className="chat-panel">
           <h3>Admin support</h3>
-          {adminMessages.map((message) => <p className={`bubble ${message.senderRole === 'workshop' ? 'user' : 'assistant'} ${message.readByWorkshop === false ? 'unread' : ''}`} key={message.id || message.createdAt}>{message.text || message.message}<small>{message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : ''}</small></p>)}
+          {adminThread.map((message) => <p className={`bubble ${message.senderRole === 'workshop' ? 'user' : 'assistant'} ${message.readByWorkshop === false ? 'unread' : ''}`} key={message.id || message.createdAt}>{message.text || message.message}<small>{message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : ''}</small></p>)}
           <div className="chat-input">
             <input placeholder="Message admin" value={adminText} onChange={(e) => setAdminText(e.target.value)} />
             <button className="primary-btn" onClick={sendAdmin}>Send</button>

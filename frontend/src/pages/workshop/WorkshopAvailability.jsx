@@ -5,13 +5,14 @@ import { useApi } from '../../hooks/useApi.js';
 
 export default function WorkshopAvailability() {
   const { data, setData, refresh } = useApi('/workshop/slots', []);
+  const slots = Array.isArray(data) ? data : [];
   const [slot, setSlot] = useState({ date: '', time: '' });
   const [editingId, setEditingId] = useState('');
 
   const saveLocalSlot = () => {
     if (!slot.date || !slot.time) return;
     const next = { id: `${slot.date}T${slot.time}:00.000Z`, ...slot, booked: false };
-    setData(editingId ? data.map((item) => (item.id === editingId ? next : item)) : [...data, next]);
+    setData(editingId ? slots.map((item) => (item.id === editingId ? next : item)) : [...slots, next]);
     setSlot({ date: '', time: '' });
     setEditingId('');
   };
@@ -20,8 +21,8 @@ export default function WorkshopAvailability() {
     setSlot({ date: item.date, time: item.time });
     setEditingId(item.id);
   };
-  const remove = (id) => setData(data.filter((item) => item.id !== id));
-  const save = async () => setData(await put('/workshop/slots', { slots: data.filter((item) => !item.booked) }));
+  const remove = (id) => setData(slots.filter((item) => item.id !== id));
+  const save = async () => setData(await put('/workshop/slots', { slots: slots.filter((item) => !item.booked) }));
 
   return (
     <div className="dash-stack">
@@ -33,8 +34,8 @@ export default function WorkshopAvailability() {
         <button className="ghost-btn" onClick={save}>Save slots</button>
         <button className="ghost-btn" onClick={refresh}>Refresh</button>
       </section>
-      {data.length ? <div className="feature-grid three">
-        {data.map((item) => (
+      {slots.length ? <div className="feature-grid three">
+        {slots.map((item) => (
           <article className="compact-card" key={item.id || `${item.date}-${item.time}`}>
             <h3>{item.date}</h3>
             <p>{item.time} {item.booked ? '- booked' : '- available'}</p>

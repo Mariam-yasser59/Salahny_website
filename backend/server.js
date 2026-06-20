@@ -40,7 +40,13 @@ app.use(cors({
     } catch {
       hostname = '';
     }
-    if (!origin || allowedOrigins.includes(origin) || /\.up\.railway\.app$/.test(hostname)) {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      ['localhost', '127.0.0.1'].includes(hostname) ||
+      /\.up\.railway\.app$/.test(hostname) ||
+      /\.railway\.internal$/.test(hostname)
+    ) {
       return callback(null, true);
     }
     return callback(new Error(`CORS blocked origin: ${origin}`));

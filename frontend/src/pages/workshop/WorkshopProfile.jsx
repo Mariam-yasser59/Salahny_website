@@ -7,6 +7,7 @@ import { useApi } from '../../hooks/useApi.js';
 export default function WorkshopProfile() {
   const { data, setData } = useApi('/workshop/profile', {});
   const { data: documents, setData: setDocuments } = useApi('/workshop/documents', []);
+  const documentList = Array.isArray(documents) ? documents : [];
   const [form, setForm] = useState({ name: '', address: '', lat: '', lng: '' });
   const [documentForm, setDocumentForm] = useState({ kind: 'commercial_registration', file: null });
 
@@ -35,7 +36,7 @@ export default function WorkshopProfile() {
     payload.append('kind', documentForm.kind);
     payload.append('file', documentForm.file);
     const document = await uploadDocument(payload);
-    setDocuments([document, ...documents]);
+    setDocuments([document, ...documentList]);
     setDocumentForm({ kind: 'commercial_registration', file: null });
   };
 
@@ -92,7 +93,7 @@ export default function WorkshopProfile() {
           <button className="primary-btn" disabled={!documentForm.file} onClick={submitDocument}>Upload verification document</button>
         </section>
         <div className="feature-grid two">
-          {documents.map((document) => (
+          {documentList.map((document) => (
             <article className="compact-card" key={document.id}>
               <h3>{document.fileName}</h3>
               <p>{String(document.kind || '').replaceAll('_', ' ')}</p>

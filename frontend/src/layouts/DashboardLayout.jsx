@@ -7,6 +7,8 @@ import { useAuth } from '../services/AuthContext.jsx';
 export default function DashboardLayout({ role }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const roleNav = nav[role] || [];
+  const meta = roleMeta[role] || { title: 'Portal', home: '/' };
 
   if (!user || user.role !== role) return <Navigate to={`/login/${role}`} replace />;
   if (role === 'workshop' && ['pending', 'rejected', 'suspended', 'deleted'].includes(String(user.status || user.verificationStatus || '').toLowerCase())) {
@@ -17,10 +19,10 @@ export default function DashboardLayout({ role }) {
     <div className="dashboard-shell">
       <aside className="sidebar">
         <Logo />
-        <p className="portal-title">{roleMeta[role].title}</p>
+        <p className="portal-title">{meta.title}</p>
         <nav>
-          {nav[role].map(({ to, label, icon: Icon }) => (
-            <NavLink end={to === roleMeta[role].home} key={to} to={to}>
+          {roleNav.map(({ to, label, icon: Icon }) => (
+            <NavLink end={to === meta.home} key={to} to={to}>
               <Icon size={18} />
               <span>{label}</span>
             </NavLink>
@@ -30,7 +32,7 @@ export default function DashboardLayout({ role }) {
       <main className="dashboard-main">
         <header className="dash-topbar">
           <div>
-            <span className="eyebrow">{roleMeta[role].title}</span>
+            <span className="eyebrow">{meta.title}</span>
             <h1>Welcome back, {user.name}</h1>
           </div>
           <button className="ghost-btn" onClick={() => { logout(); navigate('/'); }}>Logout</button>

@@ -11,7 +11,7 @@ export default function Services() {
     <main className="page">
       <SectionHeader eyebrow="Services" title="Complete service marketplace" />
       <div className="service-grid">
-        {data.services.map((service) => <article className="compact-card" key={service.id}><Wrench /><h3>{service.name}</h3><p>{service.description}</p><strong>{service.price} EGP · {service.duration}</strong></article>)}
+        {(data?.services || []).map((service) => <article className="compact-card" key={service.id}><Wrench /><h3>{service.name}</h3><p>{service.description}</p><strong>{service.price} EGP · {service.duration}</strong></article>)}
       </div>
     </main>
   );

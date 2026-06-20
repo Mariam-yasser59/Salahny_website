@@ -11,17 +11,18 @@ const statuses = [
 
 export default function WorkshopEmergency() {
   const { data, setData } = useApi('/workshop/emergency', []);
+  const requests = Array.isArray(data) ? data : [];
 
   const update = async (id, action, status) => {
     const updated = await patch(`/workshop/emergency/${id}/${action}`, status ? { status } : {});
-    setData(data.map((item) => (item.id === id ? { ...item, ...updated, status: status || action } : item)));
+    setData(requests.map((item) => (item.id === id ? { ...item, ...updated, status: status || action } : item)));
   };
 
   return (
     <div className="dash-stack">
       <SectionHeader title="Assigned Emergency Requests" />
       <div className="feature-grid two">
-        {data.map((item) => (
+        {requests.map((item) => (
           <article className="feature-card booking-card" key={item.id}>
             <h3>{item.customerName || item.driver?.name || 'Emergency customer'}</h3>
             <p>{item.issue || item.type || 'Roadside assistance'} - {item.location?.address || item.location || 'Location pending'}</p>

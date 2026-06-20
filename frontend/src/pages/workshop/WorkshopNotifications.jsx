@@ -3,12 +3,13 @@ import { useApi } from '../../hooks/useApi.js';
 
 export default function WorkshopNotifications() {
   const { data } = useApi('/workshop/notifications', []);
+  const notifications = Array.isArray(data) ? data : [];
 
   return (
     <div className="dash-stack">
       <SectionHeader title="Notifications" />
       <section className="panel">
-        {data.map((item) => (
+        {notifications.map((item) => (
           <div className="activity-row" key={item.id || item.createdAt}>
             <strong>{item.title || item.type || 'Update'}</strong>
             <span>{item.message || item.body}</span>
