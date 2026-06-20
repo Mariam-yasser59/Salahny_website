@@ -10,6 +10,8 @@ import workshopPortalRoutes from './routes/workshopPortalRoutes.js';
 import { chatRoutes, diagnosticRoutes, emergencyRoutes, notificationRoutes, trackingRoutes } from './routes/workshopIntegrationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
+import { requireAuth } from './middleware/auth.js';
+import { db, nextId } from './data/mockData.js';
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -43,7 +45,7 @@ app.use(cors({
     return callback(new Error(`CORS blocked origin: ${origin}`));
   }
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 app.get('/api/health', (_req, res) => {
@@ -60,6 +62,36 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/diagnostics', diagnosticRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.get('/api/documents', requireAuth(['workshop']), (req, res) => {
+  const workshop = db.workshops.find((item) => item.userId === req.user.id);
+  res.json({
+    success: true,
+    data: db.verificationDocuments.filter((document) => document.userId === req.user.id || document.workshopId === workshop?.id)
+  });
+});
+app.post('/api/documents', requireAuth(['workshop']), (req, res) => {
+  const workshop = db.workshops.find((item) => item.userId === req.user.id);
+  if (!workshop) return res.status(404).json({ message: 'Workshop profile not found' });
+
+  const document = {
+    id: nextId('vd', 'verificationDocuments'),
+    userId: req.user.id,
+    workshopId: workshop.id,
+    kind: req.body.kind || req.body.documentType || 'commercial_registration',
+    fileName: req.body.fileName || req.body.name || 'verification-document',
+    mimeType: req.body.mimeType || 'application/octet-stream',
+    size: Number(req.body.size) || 0,
+    status: 'pending_admin_review',
+    cvStatus: 'submitted',
+    uploadedAt: new Date().toISOString()
+  };
+
+  db.verificationDocuments.unshift(document);
+  workshop.verificationDocumentName = document.fileName;
+  workshop.verificationStatus = 'pending_admin_review';
+  workshop.accountStatus = workshop.accountStatus === 'active' ? 'active' : 'pending';
+  res.status(201).json({ success: true, data: document });
+});
 app.use('/api/admin', adminRoutes);
 
 app.use(express.static(frontendDist));

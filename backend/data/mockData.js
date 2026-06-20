@@ -72,7 +72,8 @@ export const db = {
   earnings: [
     { id: 'e1', workshopId: 'w1', bookingId: 'b2', driverId: 'u1', amount: 180, status: 'available', createdAt: '2026-04-12T14:00:00.000Z' }
   ],
-  trackingUpdates: []
+  trackingUpdates: [],
+  verificationDocuments: []
 };
 
 export const findById = (collection, id) => db[collection].find((item) => item.id === id);

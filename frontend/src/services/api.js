@@ -223,6 +223,7 @@ const virtualGet = async (path) => {
       () => Promise.resolve([{ id: 'n1', title: 'Workshop portal ready', message: 'Booking, diagnostics, emergency, and admin chat notifications appear here.', createdAt: 'Today' }])
     );
   }
+  if (path === '/workshop/documents') return request('/documents').then((data) => normalizeList(data, ['documents', 'data']));
 
   if (path === '/admin/dashboard') return request('/admin/dashboard').catch(() => ({ totalUsers: 128, totalDrivers: 96, totalWorkshops: 18, totalBookings: fallbackBookings.length, revenue: 191900, pendingApprovals: 4, recentActivity: [] }));
   if (path === '/admin/approvals') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['pending', 'inactive'].includes(item.status));
@@ -308,4 +309,14 @@ export const post = (path, body) => api(path, { method: 'POST', body: body insta
 export const put = (path, body) => api(path, { method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body) });
 export const patch = (path, body) => api(path, { method: 'PATCH', body: body instanceof FormData ? body : JSON.stringify(body) });
 export const del = (path) => api(path, { method: 'DELETE' });
-export const uploadDocument = (body) => request('/documents', { method: 'POST', body });
+export const uploadDocument = async (body) => {
+  if (!(body instanceof FormData)) return request('/documents', { method: 'POST', body: JSON.stringify(body) });
+  const file = body.get('file') || body.get('verificationDocument');
+  const metadata = {
+    kind: body.get('kind') || body.get('documentType') || 'commercial_registration',
+    fileName: file?.name || body.get('fileName') || 'verification-document',
+    mimeType: file?.type || 'application/octet-stream',
+    size: file?.size || 0
+  };
+  return request('/documents', { method: 'POST', body: JSON.stringify(metadata) }).then(payload);
+};
