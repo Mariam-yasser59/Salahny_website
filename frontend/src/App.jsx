@@ -34,6 +34,7 @@ import WorkshopChat from './pages/workshop/WorkshopChat.jsx';
 import WorkshopAvailability from './pages/workshop/WorkshopAvailability.jsx';
 import WorkshopEmergency from './pages/workshop/WorkshopEmergency.jsx';
 import WorkshopNotifications from './pages/workshop/WorkshopNotifications.jsx';
+import WorkshopVerificationDocuments from './pages/workshop/WorkshopVerificationDocuments.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import AdminApprovals from './pages/admin/AdminApprovals.jsx';
 import AdminDrivers from './pages/admin/AdminDrivers.jsx';
@@ -47,7 +48,8 @@ export default function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<Splash />} />
+        <Route path="/" element={<RoleSelection />} />
+        <Route path="/splash" element={<Splash />} />
         <Route path="/home" element={<Home />} />
         <Route path="/roles" element={<RoleSelection />} />
         <Route path="/about" element={<About />} />
@@ -96,6 +98,7 @@ export default function App() {
         <Route path="diagnostics" element={<WorkshopDiagnostics />} />
         <Route path="chat" element={<WorkshopChat />} />
         <Route path="notifications" element={<WorkshopNotifications />} />
+        <Route path="verification-documents" element={<WorkshopVerificationDocuments />} />
       </Route>
 
       <Route path="/admin" element={<DashboardLayout role="admin" />}>

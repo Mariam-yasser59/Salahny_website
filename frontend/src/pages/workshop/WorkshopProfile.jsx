@@ -51,7 +51,29 @@ export default function WorkshopProfile() {
           </div>
           <StatusBadge value={data.verificationStatus || (data.verified ? 'verified' : 'pending')} />
         </div>
+        <div className="stats-grid">
+          <div className="stat-card"><div><p>Completion rate</p><strong>{data.completionRate || 96}%</strong><span>Completed service jobs</span></div></div>
+          <div className="stat-card"><div><p>Repeat clients</p><strong>{data.repeatClients || 18}</strong><span>Returning drivers</span></div></div>
+          <div className="stat-card"><div><p>Avg response</p><strong>{data.avgResponseTime || '12m'}</strong><span>Request handling</span></div></div>
+          <div className="stat-card"><div><p>Account</p><strong>{data.accountStatus || 'pending'}</strong><span>Admin status</span></div></div>
+        </div>
         <div className="chips">{(data.services || data.specialties || []).map((item) => <span key={item.name || item}>{item.name || item}</span>)}</div>
+        <div className="map-layout">
+          <section className="map-panel">
+            <div>
+              <strong>Workshop Location</strong>
+              <p>{form.lat && form.lng ? `${form.lat}, ${form.lng}` : 'Pick a point or use current GPS'}</p>
+            </div>
+          </section>
+          <section>
+            <h3>Update location</h3>
+            <p>Type an address, search it externally if needed, pick coordinates, or use current GPS.</p>
+            <div className="actions">
+              <a className="ghost-btn" href={`https://www.google.com/maps/search/${encodeURIComponent(form.address || 'Cairo workshop')}`} target="_blank" rel="noreferrer">Search address</a>
+              <button className="ghost-btn" onClick={useCurrentLocation}>Use current GPS</button>
+            </div>
+          </section>
+        </div>
         <div className="form-grid">
           <input placeholder="Workshop name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
@@ -83,6 +105,7 @@ export default function WorkshopProfile() {
           <a className="ghost-btn" href="/workshop/emergency">Emergency</a>
           <a className="ghost-btn" href="/workshop/chat">Admin chat</a>
           <a className="ghost-btn" href="/workshop/availability">Availability</a>
+          <a className="ghost-btn" href="/workshop/verification-documents">Verification Documents</a>
         </div>
       </section>
     </div>

@@ -3,7 +3,11 @@ import StatusBadge from '../../components/StatusBadge.jsx';
 import { useApi } from '../../hooks/useApi.js';
 import { patch } from '../../services/api.js';
 
-const statuses = ['mechanic_on_the_way', 'arrived', 'in_progress', 'completed'];
+const statuses = [
+  ['mechanic_on_the_way', 'On Way'],
+  ['arrived', 'Arrived'],
+  ['completed', 'Complete']
+];
 
 export default function WorkshopEmergency() {
   const { data, setData } = useApi('/workshop/emergency', []);
@@ -25,8 +29,7 @@ export default function WorkshopEmergency() {
             <StatusBadge value={item.status} />
             <div className="actions">
               <button className="primary-btn" onClick={() => update(item.id, 'accept')}>Accept</button>
-              <button className="ghost-btn" onClick={() => update(item.id, 'reject')}>Reject</button>
-              {statuses.map((status) => <button className="ghost-btn" key={status} onClick={() => update(item.id, 'status', status)}>{status.replaceAll('_', ' ')}</button>)}
+              {statuses.map(([status, label]) => <button className="ghost-btn" key={status} onClick={() => update(item.id, 'status', status)}>{label}</button>)}
             </div>
           </article>
         ))}

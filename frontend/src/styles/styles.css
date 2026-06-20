@@ -749,9 +749,20 @@ tr:hover td {
 
 .badge-pending,
 .badge-in_progress,
-.badge-accepted {
+.badge-repair_in_progress {
   background: rgba(245, 199, 107, 0.17);
   color: #ffd77f;
+}
+
+.badge-accepted,
+.badge-available {
+  background: rgba(34, 209, 140, 0.16);
+  color: #79f1bf;
+}
+
+.badge-diagnostics_ready {
+  background: rgba(160, 120, 255, 0.18);
+  color: #cdb8ff;
 }
 
 .badge-suspended,
@@ -832,6 +843,13 @@ tr:hover td {
   line-height: 1.6;
 }
 
+.bubble small {
+  display: block;
+  margin-top: 5px;
+  opacity: 0.68;
+  font-size: 0.72rem;
+}
+
 .bubble.user {
   align-self: flex-end;
   background: linear-gradient(135deg, var(--brand-2), var(--brand));
@@ -843,11 +861,16 @@ tr:hover td {
   color: var(--ink);
 }
 
+.bubble.unread {
+  border: 1px solid rgba(245, 199, 107, 0.45);
+  box-shadow: 0 0 30px rgba(245, 199, 107, 0.12);
+}
+
 /* Profile / Chips / Chart */
 .profile-panel {
   display: grid;
   gap: 12px;
-  max-width: 720px;
+  max-width: none;
 }
 
 .profile-strip {
@@ -965,6 +988,26 @@ tr:hover td {
   color: var(--ink);
   display: block;
   margin-bottom: 6px;
+}
+
+.scanner-card {
+  display: grid;
+  gap: 14px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(16px);
+}
+
+.modal-backdrop .auth-card {
+  max-width: 520px;
 }
 
 .error-state {

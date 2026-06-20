@@ -6,9 +6,10 @@ export const useApi = (path, fallback) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = () => {
     let active = true;
     setLoading(true);
+    setError('');
     api(path)
       .then((result) => active && setData(result))
       .catch((err) => active && setError(err.message))
@@ -16,7 +17,14 @@ export const useApi = (path, fallback) => {
     return () => {
       active = false;
     };
+  };
+
+  useEffect(() => {
+    const cleanup = load();
+    return () => {
+      cleanup();
+    };
   }, [path]);
 
-  return { data, loading, error, setData };
+  return { data, loading, error, setData, refresh: load };
 };

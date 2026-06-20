@@ -33,7 +33,8 @@ export default function WorkshopChat() {
         <section className="chat-panel">
           <h3>Driver booking chat</h3>
           <input placeholder="Booking ID" value={bookingId} onChange={(e) => setBookingId(e.target.value)} />
-          {(bookingChat.messages || []).map((message) => <p className={`bubble ${message.senderRole === 'workshop' ? 'user' : 'assistant'}`} key={message.id || message.createdAt}>{message.text || message.message}</p>)}
+          {bookingChat.context?.booking && <div className="state-card"><strong>{bookingChat.context.booking.id} - {bookingChat.context.booking.serviceName}</strong><span>{bookingChat.context.booking.status}</span></div>}
+          {(bookingChat.messages || []).map((message) => <p className={`bubble ${message.senderRole === 'workshop' ? 'user' : 'assistant'}`} key={message.id || message.createdAt}>{message.text || message.message}<small>{message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : ''}</small></p>)}
           <div className="chat-input">
             <input placeholder="Message driver" value={driverText} onChange={(e) => setDriverText(e.target.value)} />
             <button className="primary-btn" onClick={sendDriver}>Send</button>
@@ -42,7 +43,7 @@ export default function WorkshopChat() {
         </section>
         <section className="chat-panel">
           <h3>Admin support</h3>
-          {adminMessages.map((message) => <p className={`bubble ${message.senderRole === 'workshop' ? 'user' : 'assistant'}`} key={message.id || message.createdAt}>{message.text || message.message}</p>)}
+          {adminMessages.map((message) => <p className={`bubble ${message.senderRole === 'workshop' ? 'user' : 'assistant'} ${message.readByWorkshop === false ? 'unread' : ''}`} key={message.id || message.createdAt}>{message.text || message.message}<small>{message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : ''}</small></p>)}
           <div className="chat-input">
             <input placeholder="Message admin" value={adminText} onChange={(e) => setAdminText(e.target.value)} />
             <button className="primary-btn" onClick={sendAdmin}>Send</button>

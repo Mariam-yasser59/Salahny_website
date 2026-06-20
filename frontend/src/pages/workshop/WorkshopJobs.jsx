@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import SectionHeader from '../../components/SectionHeader.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import { useApi } from '../../hooks/useApi.js';
@@ -13,6 +14,7 @@ const nextSteps = [
 
 export default function WorkshopJobs() {
   const { data, setData } = useApi('/workshop/jobs', []);
+  const [trackingJob, setTrackingJob] = useState('');
   const jobs = Array.isArray(data) ? data : data.current || [];
 
   const update = async (id, status) => {
@@ -24,6 +26,7 @@ export default function WorkshopJobs() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async ({ coords }) => {
       await post(`/workshop/tracking/${id}`, { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy });
+      setTrackingJob(id);
     });
   };
 
@@ -45,7 +48,7 @@ export default function WorkshopJobs() {
                 <button className="primary-btn" onClick={() => update(job.id, step[1])}>{step[2]}</button>
                 <Link className="ghost-btn" to="/workshop/diagnostics" state={{ bookingId: job.id }}>Run diagnostics</Link>
                 <Link className="ghost-btn" to="/workshop/chat" state={{ bookingId: job.id }}>Open chat</Link>
-                <button className="ghost-btn" onClick={() => shareLocation(job.id)}>Share GPS</button>
+                <button className="ghost-btn" onClick={() => trackingJob === job.id ? setTrackingJob('') : shareLocation(job.id)}>{trackingJob === job.id ? 'Stop Live GPS' : 'Start Live GPS'}</button>
               </div>
             </article>
           );

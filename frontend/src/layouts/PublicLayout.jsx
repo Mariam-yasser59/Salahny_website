@@ -27,8 +27,8 @@ export default function PublicLayout() {
         <Logo />
         <p>Smart vehicle care, trusted workshops, and platform operations in one connected system.</p>
         <div>
+          <Link to="/login/driver">Driver Login</Link>
           <Link to="/login/workshop">Workshop Login</Link>
-          <Link to="/login/admin">Super Admin</Link>
         </div>
       </footer>
     </div>

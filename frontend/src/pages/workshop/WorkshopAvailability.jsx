@@ -4,7 +4,7 @@ import { put } from '../../services/api.js';
 import { useApi } from '../../hooks/useApi.js';
 
 export default function WorkshopAvailability() {
-  const { data, setData } = useApi('/workshop/slots', []);
+  const { data, setData, refresh } = useApi('/workshop/slots', []);
   const [slot, setSlot] = useState({ date: '', time: '' });
   const [editingId, setEditingId] = useState('');
 
@@ -31,8 +31,9 @@ export default function WorkshopAvailability() {
         <input type="time" value={slot.time} onChange={(e) => setSlot({ ...slot, time: e.target.value })} />
         <button className="primary-btn" onClick={saveLocalSlot}>{editingId ? 'Update slot' : 'Add slot'}</button>
         <button className="ghost-btn" onClick={save}>Save slots</button>
+        <button className="ghost-btn" onClick={refresh}>Refresh</button>
       </section>
-      <div className="feature-grid three">
+      {data.length ? <div className="feature-grid three">
         {data.map((item) => (
           <article className="compact-card" key={item.id || `${item.date}-${item.time}`}>
             <h3>{item.date}</h3>
@@ -40,7 +41,7 @@ export default function WorkshopAvailability() {
             {!item.booked && <div className="actions"><button className="ghost-btn" onClick={() => edit(item)}>Edit</button><button className="ghost-btn" onClick={() => remove(item.id)}>Delete</button></div>}
           </article>
         ))}
-      </div>
+      </div> : <article className="state-card"><strong>No Available Slots</strong><span>Add times drivers can book.</span></article>}
     </div>
   );
 }

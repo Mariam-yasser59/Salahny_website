@@ -1,4 +1,4 @@
-import { Activity, BadgeCheck, BarChart3, Bell, Bot, BriefcaseBusiness, CalendarClock, Car, ClipboardCheck, Clock3, History, LayoutDashboard, LifeBuoy, ListChecks, MapPinned, MessageCircle, Package, Settings, ShieldCheck, Store, Users, Wrench } from 'lucide-react';
+import { Activity, BadgeCheck, BarChart3, Bell, Bot, BriefcaseBusiness, CalendarClock, Car, ClipboardCheck, Clock3, FileCheck2, History, LayoutDashboard, LifeBuoy, ListChecks, MapPinned, MessageCircle, Package, Settings, ShieldCheck, Store, Users, Wrench } from 'lucide-react';
 
 export const nav = {
   driver: [
@@ -25,8 +25,8 @@ export const nav = {
     { to: '/workshop/emergency', label: 'Emergency', icon: LifeBuoy },
     { to: '/workshop/earnings', label: 'Earnings', icon: BarChart3 },
     { to: '/workshop/diagnostics', label: 'AI Reports', icon: Bot },
-    { to: '/workshop/chat', label: 'Chat', icon: MessageCircle },
-    { to: '/workshop/notifications', label: 'Notifications', icon: Bell },
+    { to: '/workshop/chat', label: 'Admin Chat', icon: MessageCircle },
+    { to: '/workshop/verification-documents', label: 'Verification Documents', icon: FileCheck2 },
     { to: '/workshop/profile', label: 'Profile', icon: Store }
   ],
   admin: [

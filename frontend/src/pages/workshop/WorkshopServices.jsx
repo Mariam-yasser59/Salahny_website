@@ -7,12 +7,14 @@ import { useApi } from '../../hooks/useApi.js';
 export default function WorkshopServices() {
   const { data, setData } = useApi('/workshop/services', []);
   const [form, setForm] = useState({ name: '', label: '🔧', durationMins: 60, price: 500 });
+  const [modalOpen, setModalOpen] = useState(false);
 
   const add = async () => {
     if (!form.name.trim()) return;
     const service = await post('/workshop/services', form);
     setData([...data, service]);
     setForm({ name: '', label: '🔧', durationMins: 60, price: 500 });
+    setModalOpen(false);
   };
 
   const remove = async (id) => {
@@ -22,20 +24,35 @@ export default function WorkshopServices() {
 
   return (
     <div className="dash-stack">
-      <SectionHeader title="Service Catalog" />
-      <section className="panel form-grid">
-        <input placeholder="Service name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input placeholder="Emoji or label" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
-        <input type="number" min="5" placeholder="Duration minutes" value={form.durationMins} onChange={(e) => setForm({ ...form, durationMins: Number(e.target.value) })} />
-        <input type="number" min="0" placeholder="Price EGP" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
-        <button className="primary-btn" onClick={add}>Add service</button>
-      </section>
+      <SectionHeader title="Service Catalog" action={<button className="primary-btn" onClick={() => setModalOpen(true)}>Add service</button>} />
       <DataTable rows={data} columns={[
         { key: 'name', label: 'Service', render: (row) => `${row.label || row.emoji || ''} ${row.name}` },
         { key: 'durationMins', label: 'Duration', render: (row) => `${row.durationMins || row.duration || 0} min` },
         { key: 'price', label: 'Price', render: (row) => `${row.price || 0} EGP` },
         { key: 'action', label: 'Action', render: (row) => <button className="ghost-btn" onClick={() => remove(row.id)}>Delete</button> }
       ]} />
+      {modalOpen && (
+        <div className="modal-backdrop">
+          <section className="auth-card">
+            <span className="eyebrow">New service</span>
+            <h2>Add workshop service</h2>
+            <select value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })}>
+              <option value="🔧">Repair</option>
+              <option value="🛢️">Oil</option>
+              <option value="🔋">Battery</option>
+              <option value="🧠">Diagnostics</option>
+              <option value="🚗">General</option>
+            </select>
+            <input placeholder="Service name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input type="number" min="0" placeholder="Price EGP" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
+            <input type="number" min="5" placeholder="Duration minutes" value={form.durationMins} onChange={(e) => setForm({ ...form, durationMins: Number(e.target.value) })} />
+            <div className="actions">
+              <button className="primary-btn" onClick={add}>Save service</button>
+              <button className="ghost-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
