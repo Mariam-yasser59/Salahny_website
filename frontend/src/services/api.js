@@ -87,7 +87,7 @@ const virtualGet = async (path) => {
       request('/driver/profile').catch(() => null),
       request('/driver/vehicles').catch(() => []),
       request('/driver/bookings').catch(() => fallbackBookings),
-      request('/driver/workshops').catch(() => fallbackWorkshops),
+      request('/driver/workshops').catch(() => []),
       request('/notifications').catch(() => [])
     ]);
 
@@ -109,7 +109,10 @@ const virtualGet = async (path) => {
 
   if (path === '/driver/vehicles') return normalizeList(await request('/driver/vehicles'), ['vehicles']);
   if (path === '/driver/services') return normalizeList(await request('/driver/services').catch(() => fallbackServices), ['services']);
-  if (path === '/driver/workshops') return normalizeList(await request('/driver/workshops').catch(() => fallbackWorkshops), ['workshops']);
+  if (path === '/driver/workshops') return normalizeList(await request('/driver/workshops').catch(() => []), ['workshops']);
+  if (path === '/vehicles') return normalizeList(await request('/driver/vehicles'), ['vehicles']);
+  if (path === '/services') return normalizeList(await request('/driver/services').catch(() => []), ['services']);
+  if (path === '/workshops') return normalizeList(await request('/driver/workshops').catch(() => []), ['workshops']);
   if (path.startsWith('/driver/workshops/')) return request(`/driver/workshops/${path.split('/').pop()}`);
   if (path === '/driver/bookings') return normalizeList(await request('/driver/bookings').catch(() => fallbackBookings), ['bookings']).map(adaptBooking);
   if (path.startsWith('/driver/bookings/')) return adaptBooking(await request(`/driver/bookings/${path.split('/').pop()}`));
@@ -164,30 +167,26 @@ const virtualGet = async (path) => {
   if (path === '/workshop/services') {
     return withFallback(
       () => request('/workshop-portal/services').then((data) => normalizeList(data, ['services', 'data'])),
-      () => request('/workshop/services').then((data) => normalizeList(data, ['services', 'data'])).catch(() => fallbackServices)
+      () => request('/workshop/services').then((data) => normalizeList(data, ['services', 'data'])).catch(() => [])
     );
   }
 
-if (path === '/workshop/slots') {
-  return request('/workshop-portal/slots', {
-    ...options,
-    method: 'PUT'
-  }).then((data) => {
-    const result = payload(data);
-
-    const slots = Array.isArray(result)
-      ? result
-      : result?.availableSlots || result?.slots || [];
-
-    return slots.map((slot) => ({
-      id: slot,
-      value: slot,
-      date: String(slot).slice(0, 10),
-      time: String(slot).slice(11, 16),
-      booked: false
-    }));
-  });
-}
+  if (path === '/workshop/slots') {
+    return withFallback(
+      () => request('/workshop-portal/slots').then((data) => {
+        const result = payload(data);
+        const slots = Array.isArray(result) ? result : result?.availableSlots || result?.slots || [];
+        return slots.map((slot) => ({
+          id: slot,
+          value: slot,
+          date: String(slot).slice(0, 10),
+          time: String(slot).slice(11, 16),
+          booked: false
+        }));
+      }),
+      () => Promise.resolve([])
+    );
+  }
 
   if (path === '/workshop/emergency') {
     return withFallback(
@@ -279,7 +278,7 @@ export const api = async (path, options = {}) => {
     const id = path.split('/').pop();
     if (options.method === 'DELETE') return request(`/workshop-portal/services/${id}`, options).catch(() => request(`/workshop/services/${id}`, options));
   }
-  if (path === '/workshop/slots') return request('/workshop-portal/slots', { ...options, method: 'PUT' }).then((data) => (payload(data) || []).map((slot) => ({ id: slot, date: String(slot).slice(0, 10), time: String(slot).slice(11, 16), booked: false })));
+  if (path === '/workshop/slots') return request('/workshop-portal/slots', { ...options, method: 'PUT' }).then((data) => (payload(data) || []).map((slot) => ({ id: slot, value: slot, date: String(slot).slice(0, 10), time: String(slot).slice(11, 16), booked: false })));
   if (path.startsWith('/workshop/bookings/') && path.endsWith('/status')) {
     const id = path.split('/')[3];
     return request(`/workshop-portal/bookings/${id}/status`, options).then(payload).catch(() => request(`/workshop/requests/${id}/status`, options));
@@ -315,6 +314,8 @@ export const api = async (path, options = {}) => {
     const id = body.id || body._id || 'me';
     return request(`/workshops/${id}`, options).catch(() => request('/workshop/profile', options));
   }
+
+  if (path === '/bookings') return request('/driver/bookings', options);
 
   return request(path, options);
 };

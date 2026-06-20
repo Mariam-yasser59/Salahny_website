@@ -10,8 +10,22 @@ export default function WorkshopAvailability() {
 
   const [slot, setSlot] = useState({ date: '', time: '' });
   const [editingId, setEditingId] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const saveLocalSlot = () => {
+  const persistSlots = async (nextSlots) => {
+    setSaving(true);
+    try {
+      const slotValues = nextSlots
+        .filter((item) => !item.booked)
+        .map((item) => item.value || item.id || `${item.date}T${item.time}:00.000Z`);
+      const saved = await put('/workshop/slots', { slots: slotValues });
+      setData(Array.isArray(saved) ? saved : []);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveLocalSlot = async () => {
     if (!slot.date || !slot.time) return;
 
     const value = `${slot.date}T${slot.time}:00.000Z`;
@@ -24,12 +38,11 @@ export default function WorkshopAvailability() {
       booked: false
     };
 
-    setData(
-      editingId
-        ? slots.map((item) => (item.id === editingId ? next : item))
-        : [...slots, next]
-    );
+    const nextSlots = editingId
+      ? slots.map((item) => (item.id === editingId ? next : item))
+      : [...slots, next];
 
+    await persistSlots(nextSlots);
     setSlot({ date: '', time: '' });
     setEditingId('');
   };
@@ -39,20 +52,12 @@ export default function WorkshopAvailability() {
     setEditingId(item.id);
   };
 
-  const remove = (id) => {
-    setData(slots.filter((item) => item.id !== id));
+  const remove = async (id) => {
+    await persistSlots(slots.filter((item) => item.id !== id));
   };
 
   const save = async () => {
-    const slotValues = slots
-      .filter((item) => !item.booked)
-      .map((item) => item.value || item.id || `${item.date}T${item.time}:00.000Z`);
-
-await put('/workshop/slots', {
-  slots: slotValues
-});
-
-setData(slots);
+    await persistSlots(slots);
   };
 
   return (
@@ -72,12 +77,12 @@ setData(slots);
           onChange={(e) => setSlot({ ...slot, time: e.target.value })}
         />
 
-        <button className="primary-btn" onClick={saveLocalSlot}>
-          {editingId ? 'Update slot' : 'Add slot'}
+        <button className="primary-btn" onClick={saveLocalSlot} disabled={saving}>
+          {saving ? 'Saving...' : editingId ? 'Update slot' : 'Add slot'}
         </button>
 
-        <button className="ghost-btn" onClick={save}>
-          Save slots
+        <button className="ghost-btn" onClick={save} disabled={saving}>
+          {saving ? 'Saving...' : 'Save slots'}
         </button>
 
         <button className="ghost-btn" onClick={refresh}>

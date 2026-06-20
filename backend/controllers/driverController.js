@@ -1,5 +1,6 @@
 import { db, findById, nextId } from '../data/mockData.js';
 import { notifyWorkshopNewBooking } from '../services/emailNotifications.js';
+import { consumeWorkshopSlot, createMockBooking, findService, findWorkshopById, insertBooking, listServices as listStoredServices, listWorkshops as listStoredWorkshops } from '../services/persistentData.js';
 
 const enrichBooking = (booking) => ({
   ...booking,
@@ -44,12 +45,13 @@ export const deleteVehicle = (req, res) => {
   res.json(db.vehicles.splice(index, 1)[0]);
 };
 
-export const listServices = (_req, res) => res.json(db.services.filter((service) => service.enabled));
-export const listWorkshops = (_req, res) => res.json(db.workshops);
-export const getWorkshop = (req, res) => {
-  const workshop = findById('workshops', req.params.id);
+export const listServices = async (_req, res) => res.json((await listStoredServices()).filter((service) => service.enabled !== false));
+export const listWorkshops = async (_req, res) => res.json(await listStoredWorkshops());
+export const getWorkshop = async (req, res) => {
+  const workshop = await findWorkshopById(req.params.id);
   if (!workshop) return res.status(404).json({ message: 'Workshop not found' });
-  res.json({ ...workshop, reviews: db.reviews.filter((review) => review.workshopId === workshop.id), services: db.services.filter((service) => workshop.specialties.some((specialty) => service.name.includes(specialty) || service.category.includes(specialty))) });
+  const specialties = workshop.specialties || workshop.services || [];
+  res.json({ ...workshop, reviews: db.reviews.filter((review) => review.workshopId === workshop.id), services: db.services.filter((service) => specialties.some((specialty) => service.name.includes(specialty) || service.category.includes(specialty))) });
 };
 
 export const listBookings = (req, res) => res.json(db.bookings.filter((booking) => booking.driverId === req.user.id).map(enrichBooking));
@@ -59,32 +61,34 @@ export const getBooking = (req, res) => {
   res.json(enrichBooking(booking));
 };
 
-export const createBooking = (req, res) => {
-  const service = findById('services', req.body.serviceId);
-  const workshop = findById('workshops', req.body.workshopId);
+export const createBooking = async (req, res) => {
+  const service = await findService(req.body.serviceId);
+  const workshop = await findWorkshopById(req.body.workshopId || req.body.workshop);
   const slot = req.body.slot || (req.body.date && req.body.time ? `${req.body.date}T${req.body.time}:00.000Z` : null);
   if (slot && workshop) {
-    const alreadyBooked = db.bookings.some((booking) => booking.workshopId === workshop.id && booking.slot === slot && !['cancelled', 'rejected'].includes(booking.status));
-    if (alreadyBooked) return res.status(409).json({ message: 'This workshop slot is no longer available' });
-    if (workshop.availableSlots?.length && !workshop.availableSlots.includes(slot)) return res.status(409).json({ message: 'Selected workshop slot is not available' });
+    const consumed = await consumeWorkshopSlot(workshop, slot);
+    if (!consumed.ok) return res.status(409).json({ message: consumed.message });
+    req.body.slot = consumed.slot;
   }
-  const booking = {
-    id: nextId('b', 'bookings'),
+  const booking = createMockBooking({
     driverId: req.user.id,
+    workshopId: workshop?.id || req.body.workshopId || req.body.workshop,
+    serviceId: service?.id || req.body.serviceId,
     status: 'pending',
-    price: service?.price || 0,
+    price: service?.price || req.body.total || 0,
     progress: 10,
-    issue: req.body.issue || 'Service request created',
+    issue: req.body.issue || req.body.locationNotes || 'Service request created',
     timeline: ['Requested'],
-    slot,
+    slot: req.body.slot || slot,
+    date: (req.body.slot || slot || req.body.date || '').slice(0, 10),
+    time: (req.body.slot || slot || req.body.time || '').slice(11, 16),
     ...req.body
-  };
-  db.bookings.unshift(booking);
-  if (slot && workshop?.availableSlots) workshop.availableSlots = workshop.availableSlots.filter((item) => item !== slot);
+  });
+  const savedBooking = await insertBooking(booking);
   db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: 'booking_created', actor: req.user.email, message: `Booking ${booking.id} created`, date: new Date().toLocaleString() });
   const driver = db.users.find((user) => user.id === req.user.id);
-  notifyWorkshopNewBooking(workshop || {}, { ...booking, serviceName: service?.name }, driver);
-  res.status(201).json(enrichBooking(booking));
+  notifyWorkshopNewBooking(workshop || {}, { ...savedBooking, serviceName: service?.name }, driver);
+  res.status(201).json(enrichBooking(savedBooking));
 };
 
 export const diagnostics = (req, res) => res.json(db.diagnostics.filter((item) => item.driverId === req.user.id));

@@ -1,10 +1,11 @@
 import { db } from '../data/mockData.js';
+import { listServices, listWorkshops } from '../services/persistentData.js';
 
-export const getLandingData = (_req, res) => {
+export const getLandingData = async (_req, res) => {
   res.json({
-    services: db.services.filter((service) => service.enabled),
+    services: (await listServices()).filter((service) => service.enabled !== false),
     packages: db.packages.filter((pkg) => pkg.enabled),
     testimonials: db.reviews,
-    workshops: db.workshops
+    workshops: await listWorkshops()
   });
 };

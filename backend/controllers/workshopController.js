@@ -1,11 +1,14 @@
 import { db, findById, nextId } from '../data/mockData.js';
 import { notifyBookingStatus, notifyChatMessage, notifyDiagnosticReady, notifyEmergencyStatus } from '../services/emailNotifications.js';
+import { availableSlotValues, createEarningForBooking, findBookingForWorkshop, findWorkshopByUser, listBookings, listEarnings, saveBookingPatch, saveWorkshopSlots, toPublicSlot } from '../services/persistentData.js';
 
 const activeStatuses = ['accepted', 'in_progress', 'diagnostics_ready', 'repair_in_progress'];
 const guardedStatuses = ['diagnostics_ready', 'repair_in_progress', 'completed'];
 
-const currentWorkshop = (userId) =>
+const currentWorkshopSync = (userId) =>
   db.workshops.find((workshop) => workshop.userId === userId) || db.workshops[0];
+
+const currentWorkshop = (userId) => findWorkshopByUser(userId);
 
 const serviceDetails = (workshop) =>
   workshop.serviceDetails?.length
@@ -98,9 +101,11 @@ const dailyEarningSeries = (items) => {
   });
 };
 
-const dashboardPayload = (workshop) => {
-  const bookings = db.bookings.filter((booking) => booking.workshopId === workshop.id).map(jobView);
-  const earnings = db.earnings.filter((earning) => earning.workshopId === workshop.id);
+const workshopBookings = async (workshop) => listBookings({ workshopId: workshop.id || workshop._id });
+
+const dashboardPayload = async (workshop) => {
+  const bookings = (await workshopBookings(workshop)).map(jobView);
+  const earnings = await listEarnings(workshop.id || workshop._id);
   const revenue = earnings.reduce((sum, item) => sum + Number(item.amount || 0), 0) || workshop.revenue || 0;
   const completedBookings = bookings.filter((item) => item.status === 'completed').length;
   const completionRate = bookings.length ? Math.round((completedBookings / bookings.length) * 100) : 0;
@@ -144,7 +149,7 @@ const dashboardPayload = (workshop) => {
       rejected: bookings.filter((item) => item.status === 'rejected').length,
       cancelled: bookings.filter((item) => item.status === 'cancelled').length,
       revenue,
-      availableSlots: (workshop.availableSlots || []).filter((slot) => new Date(slot).getTime() > Date.now()).length
+      availableSlots: availableSlotValues(workshop, bookings).length
     }
   };
 };
@@ -164,9 +169,9 @@ const addNotification = (userId, title, message, type = 'workshop') => {
   return notification;
 };
 
-export const dashboard = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  const payload = dashboardPayload(workshop);
+export const dashboard = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  const payload = await dashboardPayload(workshop);
   res.json({
     workshop,
     todayJobs: payload.stats.jobsToday,
@@ -182,17 +187,17 @@ export const dashboard = (req, res) => {
   });
 };
 
-export const portalDashboard = (req, res) => res.json({ success: true, data: dashboardPayload(currentWorkshop(req.user.id)) });
+export const portalDashboard = async (req, res) => res.json({ success: true, data: await dashboardPayload(await currentWorkshop(req.user.id)) });
 
-export const bookings = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  const list = db.bookings.filter((booking) => booking.workshopId === workshop.id).map(portalBooking);
+export const bookings = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  const list = (await workshopBookings(workshop)).map(portalBooking);
   res.json(req.query.grouped === 'true' ? groupedBookings(list) : { success: true, data: list });
 };
 
-export const requests = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  res.json(db.bookings.filter((booking) => booking.workshopId === workshop.id && booking.status === 'pending').map(jobView));
+export const requests = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  res.json((await workshopBookings(workshop)).filter((booking) => booking.status === 'pending').map(jobView));
 };
 
 export const requestDetails = (req, res) => {
@@ -202,9 +207,9 @@ export const requestDetails = (req, res) => {
   res.json({ ...jobView(booking), diagnostic });
 };
 
-export const updateRequestStatus = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  const booking = db.bookings.find((item) => item.id === req.params.id && item.workshopId === workshop.id);
+export const updateRequestStatus = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  const booking = await findBookingForWorkshop(req.params.id, workshop);
   if (!booking) return res.status(404).json({ message: 'Request not found' });
 
   const nextStatus = req.body.status || booking.status;
@@ -212,33 +217,34 @@ export const updateRequestStatus = (req, res) => {
     return res.status(409).json({ message: 'Run or attach a workshop diagnostic before moving this booking beyond in-progress' });
   }
 
-  booking.status = nextStatus;
-  booking.progress = nextStatus === 'completed' ? 100 : nextStatus === 'repair_in_progress' ? 80 : nextStatus === 'diagnostics_ready' ? 65 : nextStatus === 'in_progress' ? 55 : nextStatus === 'accepted' ? 35 : booking.progress;
-  booking.timeline = [...new Set([...(booking.timeline || []), req.body.label || nextStatus])];
+  const patch = {
+    status: nextStatus,
+    progress: nextStatus === 'completed' ? 100 : nextStatus === 'repair_in_progress' ? 80 : nextStatus === 'diagnostics_ready' ? 65 : nextStatus === 'in_progress' ? 55 : nextStatus === 'accepted' ? 35 : booking.progress,
+    timeline: [...new Set([...(booking.timeline || []), req.body.label || nextStatus])]
+  };
+  const savedBooking = await saveBookingPatch(booking.id || booking._id, patch);
 
-  if (nextStatus === 'completed' && !db.earnings.some((earning) => earning.bookingId === booking.id)) {
-    db.earnings.unshift({ id: nextId('e', 'earnings'), workshopId: booking.workshopId, bookingId: booking.id, driverId: booking.driverId, amount: booking.price || 0, status: 'available', createdAt: new Date().toISOString() });
-  }
+  if (nextStatus === 'completed') await createEarningForBooking(savedBooking);
   addNotification(booking.driverId, 'Workshop updated your booking', `${workshop.name} marked your booking as ${nextStatus}.`, 'booking');
 
-  const updated = jobView(booking);
+  const updated = jobView(savedBooking);
   notifyBookingStatus(updated, nextStatus);
-  res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data: portalBooking(booking) } : updated);
+  res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data: portalBooking(savedBooking) } : updated);
 };
 
-export const activeJobs = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  res.json(db.bookings.filter((booking) => booking.workshopId === workshop.id && activeStatuses.includes(booking.status)).map(jobView));
+export const activeJobs = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  res.json((await workshopBookings(workshop)).filter((booking) => activeStatuses.includes(booking.status)).map(jobView));
 };
 
 export const services = (req, res) => {
-  const workshop = currentWorkshop(req.user?.id);
+  const workshop = currentWorkshopSync(req.user?.id);
   const data = workshop ? serviceDetails(workshop) : db.services;
   res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data } : data);
 };
 
 export const addService = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+  const workshop = currentWorkshopSync(req.user.id);
   const service = { id: nextId('ws', 'services'), name: req.body.name, emoji: req.body.emoji || req.body.label || 'Service', durationMins: Number(req.body.durationMins) || 60, price: Number(req.body.price) || 0 };
   workshop.serviceDetails = [...(workshop.serviceDetails || []), service];
   workshop.specialties = workshop.serviceDetails.map((item) => item.name);
@@ -246,7 +252,7 @@ export const addService = (req, res) => {
 };
 
 export const updateService = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+  const workshop = currentWorkshopSync(req.user.id);
   const service = (workshop.serviceDetails || []).find((item) => item.id === req.params.id || item.id === req.params.serviceId || item.name === req.params.id);
   if (!service) return res.status(404).json({ message: 'Service not found' });
   Object.assign(service, req.body);
@@ -255,7 +261,7 @@ export const updateService = (req, res) => {
 };
 
 export const deleteService = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+  const workshop = currentWorkshopSync(req.user.id);
   const serviceId = req.params.id || req.params.serviceId;
   const before = workshop.serviceDetails?.length || 0;
   workshop.serviceDetails = (workshop.serviceDetails || []).filter((service) => service.id !== serviceId && service.name !== serviceId);
@@ -264,24 +270,25 @@ export const deleteService = (req, res) => {
   res.json({ success: true, message: 'Service deleted' });
 };
 
-export const slots = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  const bookedSlots = new Set(db.bookings.filter((booking) => booking.workshopId === workshop.id && !['cancelled', 'rejected'].includes(booking.status)).map((booking) => booking.slot).filter(Boolean));
-  const data = (workshop.availableSlots || []).filter((slot) => new Date(slot).getTime() > Date.now() && !bookedSlots.has(slot)).sort();
-  res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data } : data.map((slot) => ({ id: slot, date: slot.slice(0, 10), time: slot.slice(11, 16), booked: false })));
+export const slots = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  const data = availableSlotValues(workshop, await workshopBookings(workshop));
+  res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data } : data.map((slot) => toPublicSlot(slot)).filter(Boolean));
 };
 
-export const updateSlots = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+export const updateSlots = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
   if (!Array.isArray(req.body.slots)) return res.status(400).json({ message: 'slots must be an array' });
-  const bookedSlots = new Set(db.bookings.filter((booking) => booking.workshopId === workshop.id && !['cancelled', 'rejected'].includes(booking.status)).map((booking) => booking.slot).filter(Boolean));
-  workshop.availableSlots = [...new Set(req.body.slots.map((slot) => (typeof slot === 'string' ? slot : `${slot.date}T${slot.time}:00.000Z`)).filter((slot) => !Number.isNaN(new Date(slot).getTime()) && new Date(slot).getTime() > Date.now() && !bookedSlots.has(slot)))].sort();
-  res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data: workshop.availableSlots } : workshop.availableSlots.map((slot) => ({ id: slot, date: slot.slice(0, 10), time: slot.slice(11, 16), booked: false })));
+  const booked = new Set((await workshopBookings(workshop)).filter((booking) => !['cancelled', 'rejected'].includes(booking.status)).map((booking) => booking.slot).filter(Boolean));
+  const slots = req.body.slots.filter((slot) => !booked.has(typeof slot === 'string' ? slot : `${slot.date}T${slot.time}:00.000Z`));
+  const savedSlots = await saveWorkshopSlots(workshop, slots);
+  const data = availableSlotValues({ ...workshop, availableSlots: savedSlots }, await workshopBookings(workshop));
+  res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data } : data.map((slot) => toPublicSlot(slot)).filter(Boolean));
 };
 
-export const earnings = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  const items = db.earnings.filter((earning) => earning.workshopId === workshop.id);
+export const earnings = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  const items = await listEarnings(workshop.id || workshop._id);
   const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const data = {
     total,
@@ -289,16 +296,16 @@ export const earnings = (req, res) => {
     availableBalance: items.filter((item) => item.status !== 'paid').reduce((sum, item) => sum + Number(item.amount || 0), 0),
     paid: items.filter((item) => item.status === 'paid').reduce((sum, item) => sum + Number(item.amount || 0), 0),
     paidAmount: items.filter((item) => item.status === 'paid').reduce((sum, item) => sum + Number(item.amount || 0), 0),
-    completedJobs: db.bookings.filter((booking) => booking.workshopId === workshop.id && booking.status === 'completed').length,
+    completedJobs: (await workshopBookings(workshop)).filter((booking) => booking.status === 'completed').length,
     series: dailyEarningSeries(items),
     items: items.map((item) => ({ ...item, serviceName: findById('services', findById('bookings', item.bookingId)?.serviceId)?.name || 'Completed booking' }))
   };
   res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data } : data);
 };
 
-export const profile = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
-  const payload = dashboardPayload(workshop);
+export const profile = async (req, res) => {
+  const workshop = await currentWorkshop(req.user.id);
+  const payload = await dashboardPayload(workshop);
   res.json({
     ...workshop,
     ...payload.profile,
@@ -308,7 +315,7 @@ export const profile = (req, res) => {
   });
 };
 export const updateProfile = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+  const workshop = currentWorkshopSync(req.user.id);
   Object.assign(workshop, req.body, {
     address: req.body.location || req.body.address || workshop.address,
     latitude: req.body.latitude ?? req.body.location?.lat ?? req.body.lat ?? workshop.latitude,
@@ -318,7 +325,7 @@ export const updateProfile = (req, res) => {
 };
 
 export const emergencyAssigned = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+  const workshop = currentWorkshopSync(req.user.id);
   res.json({ success: true, data: db.emergencyRequests.filter((item) => item.workshopId === workshop.id) });
 };
 
@@ -332,12 +339,12 @@ export const updateEmergency = (req, res) => {
 };
 
 export const adminMessages = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+  const workshop = currentWorkshopSync(req.user.id);
   res.json({ success: true, data: { workshop: { id: workshop.id, name: workshop.name }, messages: db.adminWorkshopMessages.filter((message) => message.workshopId === workshop.id) } });
 };
 
 export const sendAdminMessage = (req, res) => {
-  const workshop = currentWorkshop(req.user.id);
+  const workshop = currentWorkshopSync(req.user.id);
   const message = { id: nextId('am', 'adminWorkshopMessages'), workshopId: workshop.id, senderRole: 'workshop', senderId: req.user.id, text: req.body.text, createdAt: new Date().toISOString(), readByWorkshop: true, readByAdmin: false };
   db.adminWorkshopMessages.push(message);
   addNotification('admin1', 'Workshop message', `${workshop.name}: ${message.text}`, 'chat');
@@ -352,14 +359,14 @@ export const chatContext = (req, res) => {
 };
 
 export const chatMessages = (req, res) => res.json({ success: true, data: db.bookingMessages.filter((message) => message.bookingId === req.params.bookingId) });
-export const sendChatMessage = (req, res) => {
+export const sendChatMessage = async (req, res) => {
   const booking = db.bookings.find((item) => item.id === req.params.bookingId);
   if (!booking) return res.status(404).json({ message: 'Booking not found' });
   const message = { id: nextId('bm', 'bookingMessages'), bookingId: booking.id, senderRole: 'workshop', senderId: req.user.id, text: req.body.text, createdAt: new Date().toISOString() };
   db.bookingMessages.push(message);
   addNotification(booking.driverId, 'New workshop message', message.text, 'chat');
   const driver = findById('users', booking.driverId);
-  notifyChatMessage({ to: driver?.email, recipientName: driver?.name, senderName: currentWorkshop(req.user.id).name, text: message.text, context: 'booking chat' });
+  notifyChatMessage({ to: driver?.email, recipientName: driver?.name, senderName: (await currentWorkshop(req.user.id))?.name, text: message.text, context: 'booking chat' });
   res.status(201).json({ success: true, data: message });
 };
 
