@@ -9,7 +9,7 @@ const token = () => {
 };
 
 const clearAuth = () => {
-  if (!canUseStorage()) return;
+  if (!canUseStorage()) return;[]
   window.localStorage.removeItem(STORAGE_KEYS.token);
   window.localStorage.removeItem(STORAGE_KEYS.user);
 };
@@ -168,12 +168,26 @@ const virtualGet = async (path) => {
     );
   }
 
-  if (path === '/workshop/slots') {
-    return withFallback(
-      () => request('/workshop-portal/slots').then((data) => (payload(data) || []).map((slot) => ({ id: slot, date: String(slot).slice(0, 10), time: String(slot).slice(11, 16), booked: false }))),
-      () => Promise.resolve([])
-    );
-  }
+if (path === '/workshop/slots') {
+  return request('/workshop-portal/slots', {
+    ...options,
+    method: 'PUT'
+  }).then((data) => {
+    const result = payload(data);
+
+    const slots = Array.isArray(result)
+      ? result
+      : result?.availableSlots || result?.slots || [];
+
+    return slots.map((slot) => ({
+      id: slot,
+      value: slot,
+      date: String(slot).slice(0, 10),
+      time: String(slot).slice(11, 16),
+      booked: false
+    }));
+  });
+}
 
   if (path === '/workshop/emergency') {
     return withFallback(

@@ -35,20 +35,50 @@ export default function DriverBooking() {
   const [locationLoading, setLocationLoading] = useState(false);
 
   const selectedWorkshop = workshopsList.find(
-    (item) => (item._id || item.id) === form.workshopId
+    (item) => String(item._id || item.id) === String(form.workshopId)
   );
 
   const selectedService = servicesList.find(
-    (item) => (item._id || item.id || item.name) === form.serviceId
+    (item) => String(item._id || item.id || item.name) === String(form.serviceId)
   );
 
   const selectedVehicle = vehiclesList.find(
-    (item) => (item._id || item.id) === form.vehicleId
+    (item) => String(item._id || item.id) === String(form.vehicleId)
   );
 
   const availableSlots = useMemo(() => {
-    return selectedWorkshop?.availableSlots || [];
+    const slots =
+      selectedWorkshop?.availableSlots ||
+      selectedWorkshop?.slots ||
+      selectedWorkshop?.availableTimeSlots ||
+      selectedWorkshop?.availability ||
+      selectedWorkshop?.availableAppointments ||
+      selectedWorkshop?.appointments ||
+      selectedWorkshop?.schedule ||
+      [];
+
+    if (Array.isArray(slots)) return slots;
+
+    if (Array.isArray(slots?.slots)) return slots.slots;
+    if (Array.isArray(slots?.availableSlots)) return slots.availableSlots;
+
+    return [];
   }, [selectedWorkshop]);
+
+  const getSlotValue = (slot) => {
+    if (typeof slot === 'string') return slot;
+    return slot.date || slot.datetime || slot.time || slot.startTime || slot.start || '';
+  };
+
+  const getSlotLabel = (slot) => {
+    const value = getSlotValue(slot);
+    if (!value) return 'Available slot';
+
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.toLocaleString();
+
+    return String(value);
+  };
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -156,21 +186,23 @@ export default function DriverBooking() {
           disabled={!form.workshopId}
         >
           <option value="">
-            {form.workshopId ? 'Choose available slot' : 'Choose workshop first'}
+            {form.workshopId
+              ? availableSlots.length
+                ? 'Choose available slot'
+                : 'No available slots for this workshop'
+              : 'Choose workshop first'}
           </option>
 
-          {availableSlots.map((slot) => (
-            <option value={slot} key={slot}>
-              {new Date(slot).toLocaleString()}
-            </option>
-          ))}
-        </select>
+          {availableSlots.map((slot, index) => {
+            const value = getSlotValue(slot);
 
-        {vehiclesList.length === 0 && (
-          <p style={{ color: '#ff6b8a', gridColumn: '1 / -1' }}>
-            No vehicles found. Add a vehicle first from My Vehicles, then come back.
-          </p>
-        )}
+            return (
+              <option value={value} key={value || index}>
+                {getSlotLabel(slot)}
+              </option>
+            );
+          })}
+        </select>
 
         <input
           required
@@ -194,7 +226,7 @@ export default function DriverBooking() {
 
       {created && (
         <article className="success-card">
-          Booking confirmed: {created.service} with {created.workshop?.name}
+          Booking confirmed successfully.
         </article>
       )}
     </div>
