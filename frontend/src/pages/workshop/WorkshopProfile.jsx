@@ -8,6 +8,10 @@ export default function WorkshopProfile() {
   const { data, setData } = useApi('/workshop/profile', {});
   const { data: documents, setData: setDocuments } = useApi('/workshop/documents', []);
   const documentList = Array.isArray(documents) ? documents : [];
+  const performance = data.performance || {};
+  const completionRate = data.completionRate ?? performance.completionRate ?? data.stats?.completionRate ?? 0;
+  const repeatClients = data.repeatClients ?? performance.repeatClients ?? 0;
+  const avgResponse = data.averageResponseTime || data.avgResponseTime || performance.averageResponseTime || (performance.averageResponseMins ? `${performance.averageResponseMins}m` : 'N/A');
   const [form, setForm] = useState({ name: '', address: '', lat: '', lng: '' });
   const [documentForm, setDocumentForm] = useState({ kind: 'commercial_registration', file: null });
 
@@ -53,9 +57,9 @@ export default function WorkshopProfile() {
           <StatusBadge value={data.verificationStatus || (data.verified ? 'verified' : 'pending')} />
         </div>
         <div className="stats-grid">
-          <div className="stat-card"><div><p>Completion rate</p><strong>{data.completionRate || 96}%</strong><span>Completed service jobs</span></div></div>
-          <div className="stat-card"><div><p>Repeat clients</p><strong>{data.repeatClients || 18}</strong><span>Returning drivers</span></div></div>
-          <div className="stat-card"><div><p>Avg response</p><strong>{data.avgResponseTime || '12m'}</strong><span>Request handling</span></div></div>
+          <div className="stat-card"><div><p>Completion rate</p><strong>{completionRate}%</strong><span>Completed service jobs</span></div></div>
+          <div className="stat-card"><div><p>Repeat clients</p><strong>{repeatClients}</strong><span>Returning drivers</span></div></div>
+          <div className="stat-card"><div><p>Avg response</p><strong>{avgResponse}</strong><span>Request handling</span></div></div>
           <div className="stat-card"><div><p>Account</p><strong>{data.accountStatus || 'pending'}</strong><span>Admin status</span></div></div>
         </div>
         <div className="chips">{(data.services || data.specialties || []).map((item) => <span key={item.name || item}>{item.name || item}</span>)}</div>

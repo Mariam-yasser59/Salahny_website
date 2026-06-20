@@ -171,14 +171,14 @@ const virtualGet = async (path) => {
   if (path === '/workshop/slots') {
     return withFallback(
       () => request('/workshop-portal/slots').then((data) => (payload(data) || []).map((slot) => ({ id: slot, date: String(slot).slice(0, 10), time: String(slot).slice(11, 16), booked: false }))),
-      () => Promise.resolve([{ id: 'slot-1', date: '2026-06-22', time: '10:00', booked: false }, { id: 'slot-2', date: '2026-06-23', time: '13:30', booked: false }])
+      () => Promise.resolve([])
     );
   }
 
   if (path === '/workshop/emergency') {
     return withFallback(
       () => request('/emergency/workshop/assigned').then((data) => normalizeList(data, ['requests', 'data'])),
-      () => Promise.resolve([{ id: 'er-1', customerName: 'Roadside customer', location: 'Nasr City', issue: 'Vehicle will not start', status: 'assigned', distance: '2.1 km' }])
+      () => Promise.resolve([])
     );
   }
 
@@ -202,7 +202,7 @@ const virtualGet = async (path) => {
   if (path === '/workshop/admin/messages') {
     return withFallback(
       () => request('/workshop-portal/admin/messages').then((data) => normalizeList(data, ['messages', 'data'])),
-      () => Promise.resolve([{ id: 'admin-1', role: 'admin', text: 'Verification and operational updates will appear here.' }])
+      () => Promise.resolve([])
     );
   }
 
@@ -220,7 +220,7 @@ const virtualGet = async (path) => {
   if (path === '/workshop/notifications') {
     return withFallback(
       () => request('/notifications').then((data) => normalizeList(data, ['notifications', 'data'])),
-      () => Promise.resolve([{ id: 'n1', title: 'Workshop portal ready', message: 'Booking, diagnostics, emergency, and admin chat notifications appear here.', createdAt: 'Today' }])
+      () => Promise.resolve([])
     );
   }
   if (path === '/workshop/documents') return request('/documents').then((data) => normalizeList(data, ['documents', 'data']));

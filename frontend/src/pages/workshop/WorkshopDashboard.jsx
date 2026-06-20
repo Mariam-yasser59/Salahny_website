@@ -57,7 +57,7 @@ export default function WorkshopDashboard() {
                   </div>
                   <StatusBadge value={job.status} />
                 </div>
-                <div className="meter"><span style={{ width: `${job.progress > 1 ? job.progress : Math.round((job.progress || 0.25) * 100)}%` }} /></div>
+                <div className="meter"><span style={{ width: `${job.progress > 1 ? job.progress : Math.round((job.progress || 0) * 100)}%` }} /></div>
               </article>
             )) : <article className="state-card"><strong>No active jobs</strong><span>Accepted and in-progress bookings appear here.</span></article>}
           </div>

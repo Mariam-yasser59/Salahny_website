@@ -54,10 +54,63 @@ const portalBooking = (booking) => {
   };
 };
 
+const bookingDate = (booking) => new Date(booking.slot || (booking.date ? `${booking.date}T${booking.time || '00:00'}:00.000Z` : booking.createdAt || 0));
+
+const isToday = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+};
+
+const averageResponseMins = (bookings) => {
+  const responseTimes = bookings
+    .map((booking) => {
+      const start = new Date(booking.createdAt || booking.requestedAt || 0).getTime();
+      const accepted = new Date(booking.acceptedAt || booking.respondedAt || 0).getTime();
+      return start && accepted && accepted >= start ? Math.round((accepted - start) / 60000) : null;
+    })
+    .filter((value) => Number.isFinite(value));
+
+  if (!responseTimes.length) return null;
+  return Math.round(responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length);
+};
+
+const repeatClientCount = (bookings) => {
+  const completedByDriver = bookings
+    .filter((booking) => booking.status === 'completed')
+    .reduce((counts, booking) => {
+      if (booking.driverId) counts.set(booking.driverId, (counts.get(booking.driverId) || 0) + 1);
+      return counts;
+    }, new Map());
+  return [...completedByDriver.values()].filter((count) => count > 1).length;
+};
+
+const dailyEarningSeries = (items) => {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(today);
+    day.setDate(today.getDate() - (6 - index));
+    const key = day.toISOString().slice(0, 10);
+    return items
+      .filter((item) => String(item.createdAt || '').slice(0, 10) === key)
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  });
+};
+
 const dashboardPayload = (workshop) => {
   const bookings = db.bookings.filter((booking) => booking.workshopId === workshop.id).map(jobView);
   const earnings = db.earnings.filter((earning) => earning.workshopId === workshop.id);
   const revenue = earnings.reduce((sum, item) => sum + Number(item.amount || 0), 0) || workshop.revenue || 0;
+  const completedBookings = bookings.filter((item) => item.status === 'completed').length;
+  const completionRate = bookings.length ? Math.round((completedBookings / bookings.length) * 100) : 0;
+  const avgResponseMins = averageResponseMins(bookings);
+  const performance = {
+    completionRate,
+    repeatClients: repeatClientCount(bookings),
+    averageResponseMins: avgResponseMins ?? 0,
+    averageResponseTime: avgResponseMins === null ? 'N/A' : `${avgResponseMins}m`
+  };
   return {
     profile: {
       id: workshop.id,
@@ -74,15 +127,20 @@ const dashboardPayload = (workshop) => {
       longitude: workshop.longitude,
       monthlyRevenue: revenue,
       revenuePeriod: 'Current period',
-      payoutMethod: 'Bank Transfer'
+      payoutMethod: workshop.payoutMethod || 'Not configured',
+      completionRate: performance.completionRate,
+      repeatClients: performance.repeatClients,
+      averageResponseMins: performance.averageResponseMins,
+      averageResponseTime: performance.averageResponseTime
     },
     bookings: bookings.map(portalBooking),
+    performance,
     stats: {
-      jobsToday: bookings.length,
+      jobsToday: bookings.filter((booking) => isToday(bookingDate(booking))).length,
       totalBookings: bookings.length,
       pending: bookings.filter((item) => item.status === 'pending').length,
       active: bookings.filter((item) => activeStatuses.includes(item.status)).length,
-      completed: bookings.filter((item) => item.status === 'completed').length,
+      completed: completedBookings,
       rejected: bookings.filter((item) => item.status === 'rejected').length,
       cancelled: bookings.filter((item) => item.status === 'cancelled').length,
       revenue,
@@ -232,13 +290,23 @@ export const earnings = (req, res) => {
     paid: items.filter((item) => item.status === 'paid').reduce((sum, item) => sum + Number(item.amount || 0), 0),
     paidAmount: items.filter((item) => item.status === 'paid').reduce((sum, item) => sum + Number(item.amount || 0), 0),
     completedJobs: db.bookings.filter((booking) => booking.workshopId === workshop.id && booking.status === 'completed').length,
-    series: [20, 45, 30, 55, 80, 64, 92],
+    series: dailyEarningSeries(items),
     items: items.map((item) => ({ ...item, serviceName: findById('services', findById('bookings', item.bookingId)?.serviceId)?.name || 'Completed booking' }))
   };
   res.json(req.originalUrl.includes('/workshop-portal/') ? { success: true, data } : data);
 };
 
-export const profile = (req, res) => res.json(currentWorkshop(req.user.id));
+export const profile = (req, res) => {
+  const workshop = currentWorkshop(req.user.id);
+  const payload = dashboardPayload(workshop);
+  res.json({
+    ...workshop,
+    ...payload.profile,
+    services: serviceDetails(workshop),
+    stats: payload.stats,
+    performance: payload.performance
+  });
+};
 export const updateProfile = (req, res) => {
   const workshop = currentWorkshop(req.user.id);
   Object.assign(workshop, req.body, {

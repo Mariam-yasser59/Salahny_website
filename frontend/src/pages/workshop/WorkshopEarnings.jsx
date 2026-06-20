@@ -8,6 +8,7 @@ import { useApi } from '../../hooks/useApi.js';
 export default function WorkshopEarnings() {
   const { data } = useApi('/workshop/earnings', { series: [] });
   const series = data?.series || [];
+  const maxSeriesValue = Math.max(...series.map((value) => Number(value) || 0), 1);
   const items = data?.recent || data?.items || [];
   return (
     <div className="dash-stack">
@@ -18,7 +19,11 @@ export default function WorkshopEarnings() {
         <StatCard label="Paid" value={`${data.paidAmount ?? data.weekly ?? 0} EGP`} icon={BarChart3} />
         <StatCard label="Completed Jobs" value={data.completedJobs} icon={BarChart3} />
       </div>
-      <section className="panel chart-bars">{series.map((value, index) => <span key={index} style={{ height: `${value / 100}px` }} />)}</section>
+      <section className="panel chart-bars">
+        {series.length ? series.map((value, index) => (
+          <span key={index} title={`${value || 0} EGP`} style={{ height: `${Math.max(8, Math.round(((Number(value) || 0) / maxSeriesValue) * 180))}px` }} />
+        )) : <p>No earning trend yet.</p>}
+      </section>
       <section className="panel">
         <div className="profile-strip">
           <div>
