@@ -12,6 +12,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 import { requireAuth } from './middleware/auth.js';
 import { db, nextId } from './data/mockData.js';
+import { connectDatabase, databaseStatus } from './services/database.js';
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -49,7 +50,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'Salahny API', version: '1.0.0' });
+  res.json({ status: 'ok', service: 'Salahny API', version: '1.0.0', database: databaseStatus() });
 });
 
 app.use('/api/public', publicRoutes);
@@ -103,6 +104,8 @@ app.get('*', (req, res, next) => {
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
+
+await connectDatabase();
 
 app.listen(PORT, () => {
   console.log(`Salahny API running on http://localhost:${PORT}`);
