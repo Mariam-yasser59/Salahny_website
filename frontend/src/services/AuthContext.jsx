@@ -7,8 +7,10 @@ const AuthContext = createContext(null);
 const blockedWorkshopStatuses = ['pending', 'rejected', 'suspended', 'deleted'];
 
 const normalizeRole = (role) => {
-  const clean = String(role || 'workshop').toLowerCase();
-  return clean === 'workshop' ? 'workshop' : clean;
+  const clean = String(role || 'driver').toLowerCase();
+  if (['admin', 'super_admin', 'superadmin'].includes(clean)) return 'admin';
+  if (clean === 'workshop') return 'workshop';
+  return 'driver';
 };
 
 const normalizeAuth = (data, requestedRole) => {
@@ -49,13 +51,14 @@ const clearStoredAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(readStoredUser);
 
-  const login = async ({ email, password }) => {
-    const data = await post('/auth/login', { email, password, role: 'workshop', expectedRole: 'workshop' });
-    const auth = normalizeAuth(data, 'workshop');
+  const login = async ({ email, password, role }) => {
+    const requestedRole = normalizeRole(role);
+    const data = await post('/auth/login', { email, password, role: requestedRole, expectedRole: requestedRole });
+    const auth = normalizeAuth(data, requestedRole);
 
-    if (auth.user.role !== 'workshop') throw new Error('Only workshop accounts can access this portal.');
+    if (auth.user.role !== requestedRole) throw new Error(`Only ${requestedRole} accounts can access this portal.`);
     const status = String(auth.user.status || auth.user.verificationStatus || '').toLowerCase();
-    if (blockedWorkshopStatuses.includes(status)) {
+    if (auth.user.role === 'workshop' && blockedWorkshopStatuses.includes(status)) {
       throw new Error(`Workshop account is ${auth.user.status || auth.user.verificationStatus}. Admin approval is required before portal access.`);
     }
 
@@ -65,7 +68,8 @@ export const AuthProvider = ({ children }) => {
     return auth.user;
   };
 
-  const register = async (_role, payload) => {
+  const register = async (role, payload) => {
+    const requestedRole = normalizeRole(role);
     let documentFile = null;
     let documentType = 'commercial_registration';
     let registerPayload = payload;
@@ -75,12 +79,12 @@ export const AuthProvider = ({ children }) => {
       registerPayload = Object.fromEntries(payload.entries());
       delete registerPayload.verificationDocument;
     }
-    const data = await post('/auth/register', { ...registerPayload, role: 'workshop' });
-    const auth = normalizeAuth(data, 'workshop');
+    const data = await post('/auth/register', { ...registerPayload, role: requestedRole });
+    const auth = normalizeAuth(data, requestedRole);
 
     writeAuth(auth.token, auth.user);
 
-    if (typeof File !== 'undefined' && documentFile instanceof File) {
+    if (requestedRole === 'workshop' && typeof File !== 'undefined' && documentFile instanceof File) {
       const documentPayload = new FormData();
       documentPayload.append('kind', documentType);
       documentPayload.append('file', documentFile);

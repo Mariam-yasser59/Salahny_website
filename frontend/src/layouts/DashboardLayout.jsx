@@ -10,7 +10,7 @@ export default function DashboardLayout({ role }) {
 
   if (!user || user.role !== role) return <Navigate to={`/login/${role}`} replace />;
   if (role === 'workshop' && ['pending', 'rejected', 'suspended', 'deleted'].includes(String(user.status || user.verificationStatus || '').toLowerCase())) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login/workshop" replace />;
   }
 
   return (

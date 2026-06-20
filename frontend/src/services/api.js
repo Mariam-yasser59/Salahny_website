@@ -1,5 +1,5 @@
 import { API_BASE_URL, STORAGE_KEYS } from '../config/api.js';
-import { fallbackBookings, fallbackServices } from '../data/fallbackData.js';
+import { fallbackBookings, fallbackPackages, fallbackServices, fallbackWorkshops } from '../data/fallbackData.js';
 
 const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
@@ -67,6 +67,57 @@ const withFallback = async (primary, fallback) => {
 };
 
 const virtualGet = async (path) => {
+  if (path === '/public/landing') {
+    const [services, packagesData, workshops] = await Promise.all([
+      request('/public/landing').then((data) => data.services || data).catch(() => fallbackServices),
+      request('/public/landing').then((data) => data.packages || data).catch(() => fallbackPackages),
+      request('/public/landing').then((data) => data.workshops || data).catch(() => fallbackWorkshops)
+    ]);
+
+    return {
+      services: normalizeList(services, ['services']),
+      packages: normalizeList(packagesData, ['packages']),
+      workshops: normalizeList(workshops, ['workshops']),
+      testimonials: []
+    };
+  }
+
+  if (path === '/driver/dashboard') {
+    const [me, vehicles, bookings, workshops, notifications] = await Promise.all([
+      request('/driver/profile').catch(() => null),
+      request('/driver/vehicles').catch(() => []),
+      request('/driver/bookings').catch(() => fallbackBookings),
+      request('/driver/workshops').catch(() => fallbackWorkshops),
+      request('/notifications').catch(() => [])
+    ]);
+
+    const recentBookings = normalizeList(bookings, ['bookings']).map(adaptBooking);
+
+    return {
+      user: me?.user || me,
+      vehicles: normalizeList(vehicles, ['vehicles']),
+      activeBooking: recentBookings.find((booking) => booking.status !== 'completed'),
+      recentBookings,
+      diagnostics: [],
+      nearbyWorkshops: normalizeList(workshops, ['workshops']),
+      activity: normalizeList(notifications, ['notifications']).slice(0, 5).map((item, index) => ({
+        id: item.id || item._id || index,
+        message: item.message || item.title || 'Notification update'
+      }))
+    };
+  }
+
+  if (path === '/driver/vehicles') return normalizeList(await request('/driver/vehicles'), ['vehicles']);
+  if (path === '/driver/services') return normalizeList(await request('/driver/services').catch(() => fallbackServices), ['services']);
+  if (path === '/driver/workshops') return normalizeList(await request('/driver/workshops').catch(() => fallbackWorkshops), ['workshops']);
+  if (path.startsWith('/driver/workshops/')) return request(`/driver/workshops/${path.split('/').pop()}`);
+  if (path === '/driver/bookings') return normalizeList(await request('/driver/bookings').catch(() => fallbackBookings), ['bookings']).map(adaptBooking);
+  if (path.startsWith('/driver/bookings/')) return adaptBooking(await request(`/driver/bookings/${path.split('/').pop()}`));
+  if (path === '/driver/diagnostics') return normalizeList(await request('/driver/diagnostics').catch(() => []), ['diagnostics']);
+  if (path === '/driver/profile') return request('/driver/profile').then((data) => data.user || data);
+  if (path === '/driver/chat') return normalizeList(await request('/driver/chat'), ['rooms', 'chats', 'messages']);
+  if (path === '/driver/notifications') return normalizeList(await request('/notifications'), ['notifications']);
+
   if (path === '/workshop/dashboard') {
     return withFallback(
       async () => {
@@ -173,6 +224,16 @@ const virtualGet = async (path) => {
     );
   }
 
+  if (path === '/admin/dashboard') return request('/admin/dashboard').catch(() => ({ totalUsers: 128, totalDrivers: 96, totalWorkshops: 18, totalBookings: fallbackBookings.length, revenue: 191900, pendingApprovals: 4, recentActivity: [] }));
+  if (path === '/admin/approvals') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['pending', 'inactive'].includes(item.status));
+  if (path === '/admin/drivers') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['driver', 'user'].includes(String(item.role).toLowerCase()));
+  if (path === '/admin/workshops') return normalizeList(await request('/admin/workshops').catch(() => fallbackWorkshops), ['workshops']);
+  if (path === '/admin/bookings') return normalizeList(await request('/admin/bookings').catch(() => fallbackBookings), ['bookings']).map(adaptBooking);
+  if (path === '/admin/services') return normalizeList(await request('/services').catch(() => fallbackServices), ['services']);
+  if (path === '/admin/packages') return normalizeList(await request('/packages').catch(() => fallbackPackages), ['packages']);
+  if (path === '/admin/logs') return [];
+  if (path === '/admin/settings') return request('/users/me').then((data) => data.user || data);
+
   return request(path);
 };
 
@@ -180,14 +241,23 @@ export const api = async (path, options = {}) => {
   if (!options.method || options.method === 'GET') return virtualGet(path);
 
   if (path === '/auth/register') {
-    if (!(options.body instanceof FormData)) return request('/auth/register', options);
+    if (!(options.body instanceof FormData)) {
+      const body = JSON.parse(options.body || '{}');
+      return request(`/auth/register/${body.role || 'driver'}`, options);
+    }
     return request('/auth/register/workshop', options).catch(() => {
       const json = Object.fromEntries(options.body.entries());
       json.verificationDocumentName = json.verificationDocument?.name;
       delete json.verificationDocument;
-      return request('/auth/register', { ...options, body: JSON.stringify(json) });
+      return request('/auth/register/workshop', { ...options, body: JSON.stringify(json) });
     });
   }
+
+  if (path === '/driver/vehicles') return request('/driver/vehicles', options);
+  if (path.startsWith('/driver/vehicles/')) return request(`/driver/vehicles/${path.split('/').pop()}`, options);
+  if (path === '/driver/bookings') return request('/driver/bookings', options);
+  if (path === '/driver/diagnostics') return request('/driver/diagnostics', options);
+  if (path.startsWith('/driver/emergency/')) return request(`/${path.split('/').pop()}`, options);
 
   if (path === '/workshop/services') return request('/workshop-portal/services', options).then(payload).catch(() => request('/workshop/services', options));
   if (path.startsWith('/workshop/services/')) {

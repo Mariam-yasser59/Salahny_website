@@ -5,6 +5,7 @@ const links = [
   ['/', 'Home'],
   ['/about', 'About'],
   ['/services', 'Services'],
+  ['/packages', 'Packages'],
   ['/contact', 'Contact']
 ];
 
@@ -17,17 +18,17 @@ export default function PublicLayout() {
           {links.map(([to, label]) => <NavLink key={to} to={to === '/' ? '/home' : to}>{label}</NavLink>)}
         </nav>
         <div className="nav-actions">
-          <Link className="ghost-btn" to="/login">Workshop Login</Link>
-          <Link className="primary-btn" to="/register">Register Workshop</Link>
+          <Link className="ghost-btn" to="/login/driver">Driver Login</Link>
+          <Link className="primary-btn" to="/register/driver">Get Started</Link>
         </div>
       </header>
       <Outlet />
       <footer className="footer">
         <Logo />
-        <p>Workshop operations for Salahny service partners.</p>
+        <p>Smart vehicle care, trusted workshops, and platform operations in one connected system.</p>
         <div>
-          <Link to="/login">Workshop Login</Link>
-          <Link to="/register">Register Workshop</Link>
+          <Link to="/login/workshop">Workshop Login</Link>
+          <Link to="/login/admin">Super Admin</Link>
         </div>
       </footer>
     </div>
