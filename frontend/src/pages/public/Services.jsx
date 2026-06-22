@@ -7,17 +7,21 @@ export default function Services() {
   const { data, loading } = useApi('/public/landing', { services: [] });
   if (loading) return <Loading />;
 
+  const services = buildServiceCatalog(data?.services || []);
+
   return (
     <main className="page">
-      <SectionHeader eyebrow="Services" title="Complete service marketplace" />
+      <SectionHeader eyebrow="Services" title="Complete service marketplace">
+        Book trusted maintenance, diagnostics, repairs, and roadside support from verified Salahny workshops.
+      </SectionHeader>
       <div className="service-grid">
-        {(data?.services || []).map((service, index) => (
-          <article className="compact-card media-card" key={service.id || service.name}>
-            <img src={serviceImages[index % serviceImages.length]} alt={`${service.name} service`} />
+        {services.map((service) => (
+          <article className="compact-card media-card" key={service.key || service.id || service.name}>
+            <img src={service.image} alt={`${service.name} service`} />
             <Wrench />
             <h3>{service.name}</h3>
             <p>{service.description}</p>
-            <strong>{service.price} EGP - {service.duration}</strong>
+            <strong>{formatServiceMeta(service)}</strong>
           </article>
         ))}
       </div>
@@ -25,4 +29,134 @@ export default function Services() {
   );
 }
 
-const serviceImages = ['/images/inspection.jpg', '/images/garage-bay.jpg', '/images/ai-diagnostic.jpg', '/images/service-trust.jpg'];
+const buildServiceCatalog = (apiServices) => {
+  const unique = [];
+  const seen = new Set();
+
+  [...apiServices, ...curatedServices].forEach((service) => {
+    const name = service?.name || service?.title;
+    if (!name) return;
+
+    const key = name.trim().toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    const fallback = curatedServices.find((item) => item.name.toLowerCase() === key);
+    unique.push({
+      ...service,
+      key,
+      name,
+      description:
+        service.description ||
+        service.details ||
+        fallback?.description ||
+        'Professional vehicle service from trusted Salahny workshops.',
+      duration: normalizeDuration(service.duration || service.durationMins || fallback?.duration),
+      price: service.price ?? fallback?.price ?? 0,
+    });
+  });
+
+  return unique.slice(0, serviceImages.length).map((service, index) => ({
+    ...service,
+    image: serviceImages[index],
+  }));
+};
+
+const normalizeDuration = (duration) => {
+  if (!duration) return '';
+  if (typeof duration === 'number') return `${duration} min`;
+  return String(duration);
+};
+
+const formatServiceMeta = (service) => {
+  const price = Number(service.price || 0);
+  const parts = [];
+
+  if (price > 0) parts.push(`${price} EGP`);
+  if (service.duration) parts.push(service.duration);
+
+  return parts.length ? parts.join(' - ') : 'Price set by workshop';
+};
+
+const curatedServices = [
+  {
+    name: 'Oil Change',
+    description: 'Premium oil and filter replacement with basic fluid checks.',
+    price: 650,
+    duration: '45 min',
+  },
+  {
+    name: 'AI Diagnostics',
+    description: 'OBD scanner analysis with health score, confidence, and recommended fix.',
+    price: 300,
+    duration: '30 min',
+  },
+  {
+    name: 'Emergency Roadside Assistance',
+    description: 'Urgent help for breakdowns, lockouts, jump starts, and safety issues.',
+    price: 750,
+    duration: 'Priority',
+  },
+  {
+    name: 'Towing Service',
+    description: 'Tow your vehicle to the nearest approved workshop when it cannot be driven.',
+    price: 950,
+    duration: 'On demand',
+  },
+  {
+    name: 'Electrical Diagnostics',
+    description: 'Inspect fuses, wiring, sensors, warning lights, and electrical faults.',
+    price: 550,
+    duration: '45 min',
+  },
+  {
+    name: 'Battery Service',
+    description: 'Battery test, terminal cleaning, charging-system check, and replacement support.',
+    price: 450,
+    duration: '30 min',
+  },
+  {
+    name: 'Brake Service',
+    description: 'Brake pad inspection, replacement, and road-safety testing.',
+    price: 900,
+    duration: '1-2 hrs',
+  },
+  {
+    name: 'Tire Rotation',
+    description: 'Rotate, balance, pressure-check, and inspect all four tires.',
+    price: 500,
+    duration: '1 hr',
+  },
+  {
+    name: 'Suspension Inspection',
+    description: 'Check shocks, control arms, bushings, wheel bearings, and underbody parts.',
+    price: 650,
+    duration: '1 hr',
+  },
+  {
+    name: 'Full Mechanical Repair',
+    description: 'Engine, cooling, steering, drivetrain, and underbody repair work.',
+    price: 1200,
+    duration: 'Quote required',
+  },
+  {
+    name: 'Fuel Delivery',
+    description: 'On-road fuel delivery when your tank runs dry.',
+    price: 300,
+    duration: '30-60 min',
+  },
+];
+
+const serviceImages = [
+  '/images/oil-service.jpg',
+  '/images/ai-diagnostic.jpg',
+  '/images/service-trust.jpg',
+  '/images/garage-bay.jpg',
+  '/images/electrical-diagnostics.jpg',
+  '/images/inspection.jpg',
+  '/images/performance-repair.jpg',
+  '/images/lift-inspection.jpg',
+  '/images/suspension-service.jpg',
+  '/images/workshop-lift.jpg',
+  '/images/about-workshop.jpg',
+];
