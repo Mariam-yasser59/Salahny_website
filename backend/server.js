@@ -14,6 +14,7 @@ import { requireAuth } from './middleware/auth.js';
 import { db, nextId } from './data/mockData.js';
 import { connectDatabase, databaseStatus } from './services/database.js';
 import { listServices, listWorkshops } from './services/persistentData.js';
+import { emailConfigurationStatus } from './services/emailNotifications.js';
 import * as driverController from './controllers/driverController.js';
 import * as workshopController from './controllers/workshopController.js';
 import * as adminController from './controllers/adminController.js';
@@ -60,7 +61,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'Salahny API', version: '1.0.0', database: databaseStatus() });
+  res.json({ status: 'ok', service: 'Salahny API', version: '1.0.0', database: databaseStatus(), email: emailConfigurationStatus() });
 });
 
 app.use('/api/public', publicRoutes);

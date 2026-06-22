@@ -1,10 +1,23 @@
 const RESEND_API_URL = 'https://api.resend.com/emails';
 
-const fromEmail = () => process.env.RESEND_FROM_EMAIL || process.env.FROM_EMAIL || 'Salahny <notifications@salahny.com>';
+const fromEmail = () => process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || process.env.FROM_EMAIL || 'Salahny <notifications@salahny.com>';
+const replyToEmail = () => process.env.EMAIL_REPLY_TO || process.env.RESEND_REPLY_TO || process.env.REPLY_TO;
 const opsEmail = () => process.env.WORKSHOP_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || process.env.RESEND_TO_EMAIL;
+
+export const emailConfigurationStatus = () => ({
+  provider: 'resend',
+  configured: Boolean(process.env.RESEND_API_KEY),
+  from: fromEmail(),
+  replyTo: replyToEmail() || null,
+  opsRecipientConfigured: Boolean(opsEmail())
+});
 
 export const sendEmailNotification = async ({ to, subject, html, text }) => {
   if (!process.env.RESEND_API_KEY || !to) return { skipped: true };
+
+  const body = { from: fromEmail(), to, subject, html, text };
+  const replyTo = replyToEmail();
+  if (replyTo) body.reply_to = replyTo;
 
   const response = await fetch(RESEND_API_URL, {
     method: 'POST',
@@ -12,7 +25,7 @@ export const sendEmailNotification = async ({ to, subject, html, text }) => {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ from: fromEmail(), to, subject, html, text })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
