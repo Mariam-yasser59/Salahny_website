@@ -48,6 +48,14 @@ export default function WorkshopDiagnostics() {
   return (
     <div className="dash-stack">
       <SectionHeader title="Workshop Diagnostics" />
+      <section className="visual-banner">
+        <img src="/images/ai-diagnostic.jpg" alt="Professional OBD diagnostic scanner" />
+        <div>
+          <span className="eyebrow">Workshop AI report</span>
+          <h3>Attach diagnostics to the active booking workflow.</h3>
+          <p>Upload scanner data or enter OBD values manually, then share the report with the driver chat.</p>
+        </div>
+      </section>
       <section className="panel form-grid">
         <p className="form-note">Required OBD data is highlighted with names and units. You can enter readings manually or upload a CSV/JSON file with matching field names.</p>
         <label className="field-card">

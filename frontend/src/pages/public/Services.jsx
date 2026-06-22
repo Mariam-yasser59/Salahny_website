@@ -11,8 +11,18 @@ export default function Services() {
     <main className="page">
       <SectionHeader eyebrow="Services" title="Complete service marketplace" />
       <div className="service-grid">
-        {(data?.services || []).map((service) => <article className="compact-card" key={service.id}><Wrench /><h3>{service.name}</h3><p>{service.description}</p><strong>{service.price} EGP · {service.duration}</strong></article>)}
+        {(data?.services || []).map((service, index) => (
+          <article className="compact-card media-card" key={service.id || service.name}>
+            <img src={serviceImages[index % serviceImages.length]} alt={`${service.name} service`} />
+            <Wrench />
+            <h3>{service.name}</h3>
+            <p>{service.description}</p>
+            <strong>{service.price} EGP - {service.duration}</strong>
+          </article>
+        ))}
       </div>
     </main>
   );
 }
+
+const serviceImages = ['/images/inspection.jpg', '/images/garage-bay.jpg', '/images/ai-diagnostic.jpg', '/images/service-trust.jpg'];

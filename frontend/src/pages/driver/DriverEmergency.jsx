@@ -109,6 +109,15 @@ export default function DriverEmergency() {
         Request roadside assistance using your current location.
       </SectionHeader>
 
+      <section className="visual-banner">
+        <img src="/images/service-trust.jpg" alt="Mechanic and customer confirming vehicle service" />
+        <div>
+          <span className="eyebrow">Roadside support</span>
+          <h3>Send your issue, location, vehicle notes, and phone number to the Salahny emergency workflow.</h3>
+          <p>Admins and assigned workshops can track the request status from assignment through completion.</p>
+        </div>
+      </section>
+
       <form className="panel form-grid" onSubmit={submit}>
         <h2 style={{ gridColumn: '1 / -1' }}>
           Request Roadside Assistance

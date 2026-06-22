@@ -7,19 +7,20 @@ export default function Home() {
     <>
       <section className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">Salahny workshop portal</span>
-          <h1>Salahny for workshops</h1>
-          <p>Manage workshop requests, live jobs, services, availability, diagnostics, emergency assignments, earnings, messages, location, verification documents, and notifications from one web portal.</p>
+          <span className="eyebrow">Smart vehicle service marketplace</span>
+          <h1>Salahny</h1>
+          <p>Book trusted workshops, manage live service jobs, run AI diagnostics, request emergency support, and keep every driver, workshop, and admin workflow connected through one premium automotive platform.</p>
           <div className="hero-actions">
-            <Link className="primary-btn" to="/login">Workshop Login</Link>
-            <Link className="ghost-btn light" to="/register">Register Workshop</Link>
+            <Link className="primary-btn" to="/roles">Choose your role</Link>
+            <Link className="ghost-btn light" to="/services">Explore services</Link>
           </div>
         </div>
-        <div className="hero-panel">
+        <div className="hero-panel image-panel">
+          <img src="/images/workshop-lift.jpg" alt="Mechanic servicing a car on a workshop lift" />
           <div className="vehicle-score">
-            <span>Portal readiness</span>
-            <strong>100%</strong>
-            <p>Built around approved workshop operations.</p>
+            <span>Connected service workflow</span>
+            <strong>AI</strong>
+            <p>Bookings, diagnostics, emergency support, chat, ratings, and earnings in one place.</p>
           </div>
           <div className="hero-grid">
             {[Wrench, Bot, LifeBuoy, Store].map((Icon, index) => <div key={index}><Icon /><span>{['Jobs', 'AI Reports', 'Emergency', 'Profile'][index]}</span></div>)}

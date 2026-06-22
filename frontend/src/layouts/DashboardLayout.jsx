@@ -34,9 +34,12 @@ export default function DashboardLayout({ role }) {
       </aside>
       <main className="dashboard-main">
         <header className="dash-topbar">
-          <div>
-            <span className="eyebrow">{meta.title}</span>
-            <h1>Welcome back, {user.name}</h1>
+          <div className="profile-identity">
+            {user.profileImage ? <img className="avatar image-avatar" src={user.profileImage} alt={user.name || role} /> : <div className="avatar">{(user.name || role).slice(0, 2).toUpperCase()}</div>}
+            <div>
+              <span className="eyebrow">{meta.title}</span>
+              <h1>Welcome back, {user.name}</h1>
+            </div>
           </div>
           <button className="ghost-btn" onClick={() => { logout(); navigate('/'); }}>Logout</button>
         </header>

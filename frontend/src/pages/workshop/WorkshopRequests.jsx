@@ -3,7 +3,7 @@ import { useState } from 'react';
 import SectionHeader from '../../components/SectionHeader.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import { useApi } from '../../hooks/useApi.js';
-import { api, patch } from '../../services/api.js';
+import { api, patch, post } from '../../services/api.js';
 
 const nextActions = {
   pending: ['accepted', 'Accept'],
@@ -39,6 +39,12 @@ const getDriverPhone = (booking) =>
   booking.customerPhone ||
   'No phone';
 
+const getDriverImage = (booking) =>
+  booking.driver?.profileImage ||
+  booking.customer?.profileImage ||
+  booking.user?.profileImage ||
+  '';
+
 const toList = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
@@ -66,6 +72,7 @@ export default function WorkshopRequests() {
   const { data, setData } = useApi('/bookings', []);
   const [selected, setSelected] = useState(null);
   const [detailError, setDetailError] = useState('');
+  const [customerRating, setCustomerRating] = useState({ stars: 5, comment: '' });
 
   const bookings = toList(data);
   const groups = groupBookings(bookings);
@@ -108,6 +115,15 @@ export default function WorkshopRequests() {
     }
   };
 
+  const rateCustomer = async () => {
+    try {
+      await post('/ratings', { bookingId: getId(selected), ratingType: 'customer_by_workshop', stars: customerRating.stars, comment: customerRating.comment });
+      setDetailError('Customer rating saved.');
+    } catch (err) {
+      setDetailError(err.message);
+    }
+  };
+
   return (
     <div className="dash-stack">
       <SectionHeader title="Incoming Requests" />
@@ -127,7 +143,10 @@ export default function WorkshopRequests() {
 
             return (
               <article className="feature-card booking-card" key={id}>
-                <h3>{getDriverName(item)}</h3>
+                <div className="profile-identity">
+                  {getDriverImage(item) ? <img className="avatar image-avatar" src={getDriverImage(item)} alt={getDriverName(item)} /> : <div className="avatar">{getDriverName(item).slice(0, 2).toUpperCase()}</div>}
+                  <h3>{getDriverName(item)}</h3>
+                </div>
 
                 <p>
                   {item.vehicle?.make} {item.vehicle?.model}{' '}
@@ -171,12 +190,13 @@ export default function WorkshopRequests() {
       {selected && (
         <section className="panel">
           <div className="profile-strip">
-            <div>
-              <span className="eyebrow">Request detail</span>
-              <h2>{getServiceName(selected)}</h2>
-              <p>
-                {getDriverName(selected)} - {getDriverPhone(selected)}
-              </p>
+            <div className="profile-identity">
+              {getDriverImage(selected) ? <img className="avatar image-avatar" src={getDriverImage(selected)} alt={getDriverName(selected)} /> : <div className="avatar">{getDriverName(selected).slice(0, 2).toUpperCase()}</div>}
+              <div>
+                <span className="eyebrow">Request detail</span>
+                <h2>{getServiceName(selected)}</h2>
+                <p>{getDriverName(selected)} - {getDriverPhone(selected)}</p>
+              </div>
             </div>
 
             <StatusBadge value={selected.status || 'pending'} />
@@ -236,6 +256,17 @@ export default function WorkshopRequests() {
               Run diagnostics
             </Link>
           </div>
+
+          {(selected.status || 'pending') === 'completed' && (
+            <div className="rating-panel">
+              <h3>Rate Customer</h3>
+              <div className="rating-stars">
+                {[1, 2, 3, 4, 5].map((value) => <button type="button" className={value <= customerRating.stars ? 'active' : ''} key={value} onClick={() => setCustomerRating({ ...customerRating, stars: value })}>★</button>)}
+              </div>
+              <textarea placeholder="Optional customer note" value={customerRating.comment} onChange={(event) => setCustomerRating({ ...customerRating, comment: event.target.value })} />
+              <button className="primary-btn" type="button" onClick={rateCustomer}>Save customer rating</button>
+            </div>
+          )}
         </section>
       )}
     </div>

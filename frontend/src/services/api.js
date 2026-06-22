@@ -284,6 +284,7 @@ export const api = async (path, options = {}) => {
   if (path.startsWith('/driver/vehicles/')) return request(`/vehicles/${path.split('/').pop()}`, options);
   if (path === '/driver/bookings') return request('/bookings', options);
   if (path === '/driver/diagnostics') return request('/driver/diagnostics', options);
+  if (path === '/driver/profile') return request('/driver/profile', options);
   if (path.startsWith('/driver/emergency/')) return request(`/${path.split('/').pop()}`, options);
 
   if (path === '/vehicles') return request('/vehicles', options);
@@ -350,10 +351,10 @@ export const api = async (path, options = {}) => {
   }
 
   if (path === '/workshop/profile') {
-    const body = JSON.parse(options.body || '{}');
-    const id = body.id || body._id || 'me';
-    return request(`/workshops/${id}`, options).catch(() => request('/workshop/profile', options));
+    return request('/workshop/profile', options);
   }
+
+  if (path === '/ratings') return request('/ratings', options).then(payload);
 
   return request(path, options);
 };

@@ -1,6 +1,6 @@
 export const db = {
   users: [
-    { id: 'u1', role: 'driver', name: 'Mariam Yasser', email: 'driver@salahny.com', password: 'driver123', phone: '+20 100 112 3344', status: 'active', city: 'Cairo', joinedAt: '2026-01-12' },
+    { id: 'u1', role: 'driver', name: 'Mariam Yasser', email: 'driver@salahny.com', password: 'driver123', phone: '+20 100 112 3344', status: 'active', city: 'Cairo', joinedAt: '2026-01-12', profileImage: '' },
     { id: 'u2', role: 'driver', name: 'Omar Khaled', email: 'omar@example.com', password: 'driver123', phone: '+20 111 555 8222', status: 'pending', city: 'Giza', joinedAt: '2026-03-02' },
     { id: 'u3', role: 'workshop', name: 'TurboFix Garage', email: 'workshop@salahny.com', password: 'workshop123', phone: '+20 122 661 9090', status: 'verified', city: 'Nasr City', joinedAt: '2025-12-06' },
     { id: 'u4', role: 'workshop', name: 'Prime Auto Care', email: 'prime@example.com', password: 'workshop123', phone: '+20 109 330 1900', status: 'pending', city: 'New Cairo', joinedAt: '2026-02-20' },
@@ -11,7 +11,7 @@ export const db = {
     { id: 'v2', driverId: 'u1', make: 'Hyundai', model: 'Elantra', year: 2019, plate: 'MNO-8812', vin: 'KMHD84LF1KU654321', health: 73, obdStatus: 'Disconnected', mileage: 93820, lastService: '2026-02-11' }
   ],
   workshops: [
-    { id: 'w1', userId: 'u3', name: 'TurboFix Garage', address: '19 Abbas El Akkad, Nasr City', latitude: 30.061, longitude: 31.338, distance: '2.4 km', rating: 4.8, reviews: 184, open: true, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 68400, phone: '+20 122 661 9090', specialties: ['Diagnostics', 'Oil Change', 'Battery', 'Tires'], availableSlots: ['2026-06-22T08:00:00.000Z', '2026-06-22T10:00:00.000Z'], serviceDetails: [{ id: 'ws1', name: 'Oil Change', emoji: 'Oil', durationMins: 45, price: 650 }, { id: 'ws2', name: 'AI Diagnostics', emoji: 'Scan', durationMins: 30, price: 300 }] },
+    { id: 'w1', userId: 'u3', name: 'TurboFix Garage', address: '19 Abbas El Akkad, Nasr City', latitude: 30.061, longitude: 31.338, distance: '2.4 km', rating: 4.8, reviews: 184, open: true, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 68400, phone: '+20 122 661 9090', profileImage: '', specialties: ['Diagnostics', 'Oil Change', 'Battery', 'Tires'], availableSlots: ['2026-06-22T08:00:00.000Z', '2026-06-22T10:00:00.000Z'], serviceDetails: [{ id: 'ws1', name: 'Oil Change', emoji: 'Oil', durationMins: 45, price: 650 }, { id: 'ws2', name: 'AI Diagnostics', emoji: 'Scan', durationMins: 30, price: 300 }] },
     { id: 'w2', userId: 'u4', name: 'Prime Auto Care', address: '90 Street, New Cairo', latitude: 30.02, longitude: 31.49, distance: '6.1 km', rating: 4.6, reviews: 98, open: true, verified: false, accountStatus: 'pending', verificationStatus: 'pending_upload', revenue: 31200, phone: '+20 109 330 1900', specialties: ['Repair', 'Car Wash', 'Towing'], availableSlots: [], serviceDetails: [] },
     { id: 'w3', userId: 'u5', name: 'RedLine Service Hub', address: 'Sphinx Square, Mohandessin', latitude: 30.06, longitude: 31.2, distance: '4.8 km', rating: 4.9, reviews: 221, open: false, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 92300, phone: '+20 101 221 5555', specialties: ['Engine', 'Brakes', 'Diagnostics'], availableSlots: [], serviceDetails: [] }
   ],
@@ -45,6 +45,7 @@ export const db = {
     { id: 'r2', workshopId: 'w3', author: 'Ahmed Sami', rating: 5, comment: 'The diagnostics report helped me fix the issue on the first visit.' },
     { id: 'r3', workshopId: 'w2', author: 'Nour Adel', rating: 4, comment: 'Friendly team and good wash quality.' }
   ],
+  ratings: [],
   activityLogs: [
     { id: 'a1', type: 'user_registered', actor: 'Omar Khaled', message: 'Driver registered and awaits approval', date: '2026-04-24 09:30' },
     { id: 'a2', type: 'workshop_approved', actor: 'Admin', message: 'TurboFix Garage was verified', date: '2026-04-23 12:15' },

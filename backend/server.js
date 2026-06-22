@@ -100,6 +100,54 @@ app.patch('/api/bookings/:id/status', requireAuth(['admin', 'workshop']), (req, 
   req.body.status = req.body.status || req.body.action;
   return adminController.updateBooking(req, res);
 });
+app.get('/api/ratings', requireAuth(), (req, res) => {
+  const { bookingId, workshopId, ratingType } = req.query;
+  const data = (db.ratings || []).filter((rating) =>
+    (!bookingId || rating.bookingId === bookingId) &&
+    (!workshopId || rating.workshopId === workshopId) &&
+    (!ratingType || rating.ratingType === ratingType)
+  );
+  res.json({ success: true, data });
+});
+app.post('/api/ratings', requireAuth(), (req, res) => {
+  const { bookingId, ratingType, comment = '' } = req.body;
+  const stars = Number(req.body.stars);
+  const booking = db.bookings.find((item) => item.id === bookingId || item._id === bookingId);
+
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+  if (booking.status !== 'completed') return res.status(409).json({ message: 'Ratings are available after service completion only' });
+  if (!['workshop_by_customer', 'customer_by_workshop', 'platform_by_customer'].includes(ratingType)) return res.status(400).json({ message: 'Invalid rating type' });
+  if (!Number.isFinite(stars) || stars < 1 || stars > 5) return res.status(400).json({ message: 'Stars must be from 1 to 5' });
+
+  const raterId = req.user.id;
+  const duplicate = (db.ratings || []).some((rating) => rating.bookingId === bookingId && rating.ratingType === ratingType && rating.raterId === raterId);
+  if (duplicate) return res.status(409).json({ message: 'You already rated this booking' });
+
+  const rating = {
+    id: nextId('rt', 'ratings'),
+    bookingId,
+    customerId: booking.driverId,
+    workshopId: booking.workshopId,
+    ratingType,
+    stars,
+    comment,
+    raterId,
+    createdAt: new Date().toISOString()
+  };
+  db.ratings.unshift(rating);
+
+  if (ratingType === 'workshop_by_customer') {
+    db.reviews.unshift({ id: nextId('r', 'reviews'), workshopId: booking.workshopId, author: req.user.email, rating: stars, comment });
+    const workshop = db.workshops.find((item) => item.id === booking.workshopId);
+    const workshopRatings = db.ratings.filter((item) => item.workshopId === booking.workshopId && item.ratingType === 'workshop_by_customer');
+    if (workshop && workshopRatings.length) {
+      workshop.rating = Math.round((workshopRatings.reduce((sum, item) => sum + item.stars, 0) / workshopRatings.length) * 10) / 10;
+      workshop.reviews = workshopRatings.length;
+    }
+  }
+
+  res.status(201).json({ success: true, data: rating });
+});
 app.get('/api/documents', requireAuth(['workshop']), (req, res) => {
   const workshop = db.workshops.find((item) => item.userId === req.user.id);
   res.json({

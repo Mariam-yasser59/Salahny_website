@@ -262,6 +262,27 @@ button {
   backdrop-filter: blur(26px);
 }
 
+.image-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.image-panel > img,
+.media-card > img,
+.panel-image,
+.visual-banner img,
+.about-hero img,
+.image-split > img {
+  width: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+.image-panel > img {
+  height: 260px;
+}
+
 .vehicle-score {
   background: rgba(255, 255, 255, 0.13);
   color: var(--ink);
@@ -405,6 +426,42 @@ button {
 .testimonial p {
   color: var(--muted);
   line-height: 1.72;
+}
+
+.media-card {
+  overflow: hidden;
+}
+
+.media-card > img {
+  height: 180px;
+  margin-bottom: 14px;
+}
+
+.visual-banner,
+.about-hero,
+.image-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 47, 95, 0.13), rgba(255,255,255,0.04));
+}
+
+.visual-banner img {
+  height: 240px;
+}
+
+.about-hero img,
+.image-split > img {
+  height: 340px;
+}
+
+.panel-image {
+  height: 190px;
+  margin-bottom: 16px;
 }
 
 .feature-card.accent {
@@ -920,6 +977,57 @@ tr:hover td {
   font-weight: 950;
 }
 
+.image-avatar {
+  object-fit: cover;
+  padding: 0;
+  background: var(--panel);
+}
+
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.profile-identity h2,
+.profile-identity h3 {
+  margin: 0;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.rating-stars button {
+  border: 0;
+  background: transparent;
+  color: rgba(245, 199, 107, 0.35);
+  font-size: 1.7rem;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.rating-stars button.active {
+  color: var(--gold);
+}
+
+.rating-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.rating-panel textarea,
+.feature-card textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
 .tabs-row {
   display: flex;
   gap: 10px;
@@ -1072,7 +1180,10 @@ tr:hover td {
 
   .hero,
   .split-section,
-  .map-layout {
+  .map-layout,
+  .visual-banner,
+  .about-hero,
+  .image-split {
     grid-template-columns: 1fr;
   }
 

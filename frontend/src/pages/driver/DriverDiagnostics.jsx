@@ -15,6 +15,14 @@ export default function DriverDiagnostics() {
   return (
     <div className="dash-stack">
       <SectionHeader title="AI Diagnostics" />
+      <section className="visual-banner">
+        <img src="/images/ai-diagnostic.jpg" alt="OBD diagnostic scanner connected to a car" />
+        <div>
+          <span className="eyebrow">AI car check</span>
+          <h3>Understand vehicle symptoms before booking a repair.</h3>
+          <p>Enter OBD readings from your scanner, then use the diagnostic result to choose the right service.</p>
+        </div>
+      </section>
       <section className="panel form-grid">
         <p className="form-note">Enter live OBD values from your scanner. Required readings are highlighted with units so the report is easier to understand.</p>
         {driverDiagnosticFields.map((field) => (
