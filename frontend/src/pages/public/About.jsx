@@ -17,7 +17,7 @@ export default function About() {
   return (
     <main className="page about-page">
       <section className="about-hero">
-        <img src="/images/about-workshop.jpg" alt="Salahny automotive service team" />
+        <img src="/images/about-brake-service.jpg" alt="Mechanic preparing brake service parts in a workshop" />
         <div>
           <span className="eyebrow">About Salahny</span>
           <h1>Smart car care built around trust, speed, and transparency.</h1>
