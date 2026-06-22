@@ -28,6 +28,8 @@ const frontendDist = path.resolve(__dirname, '../frontend/dist');
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.FRONTEND_URL,
+  'https://salahnyapp.tech',
+  'https://www.salahnyapp.tech',
   process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '',
   'http://localhost:5050',
   'http://127.0.0.1:5050',
