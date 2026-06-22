@@ -1,15 +1,23 @@
 import { db } from '../data/mockData.js';
-import { listServices, listWorkshops } from '../services/persistentData.js';
+import { listBookings, listEmergencyRequests, listServices, listWorkshops } from '../services/persistentData.js';
 
 export const getLandingData = async (_req, res) => {
+  const [services, workshops, bookings, emergencyRequests] = await Promise.all([
+    listServices(),
+    listWorkshops(),
+    listBookings(),
+    listEmergencyRequests()
+  ]);
+  const completedBookings = bookings.filter((booking) => booking.status === 'completed');
+
   res.json({
-    services: (await listServices()).filter((service) => service.enabled !== false),
+    services: services.filter((service) => service.enabled !== false),
     packages: db.packages.filter((pkg) => pkg.enabled),
     testimonials: db.reviews,
-    workshops: await listWorkshops(),
-    completedServices: db.bookings.filter((booking) => booking.status === 'completed').length,
-    happyCustomers: new Set(db.bookings.filter((booking) => booking.status === 'completed').map((booking) => booking.driverId)).size,
-    emergencyHandled: db.emergencyRequests.filter((request) => ['completed', 'arrived', 'accepted_by_workshop'].includes(request.status)).length
+    workshops,
+    completedServices: completedBookings.length,
+    happyCustomers: new Set(completedBookings.map((booking) => booking.driverId || booking.driver || booking.userId).filter(Boolean)).size,
+    emergencyHandled: emergencyRequests.filter((request) => ['completed', 'arrived', 'accepted_by_workshop'].includes(request.status)).length
   });
 };
 

@@ -109,6 +109,12 @@ export const listBookings = async (filter = {}) => {
   return items.map(normalizeId);
 };
 
+export const listEmergencyRequests = async () => {
+  if (!isMongoReady()) return db.emergencyRequests;
+  const items = await collection('emergencyrequests').find({}).toArray();
+  return items.map(normalizeId);
+};
+
 export const listEarnings = async (workshopId) => {
   if (!isMongoReady()) return db.earnings.filter((earning) => String(earning.workshopId) === String(workshopId));
   const oid = objectId(workshopId);

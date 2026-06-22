@@ -67,18 +67,35 @@ const withFallback = async (primary, fallback) => {
 
 const virtualGet = async (path) => {
   if (path === '/public/landing') {
-    const [services, packagesData, workshops] = await Promise.all([
-      request('/services').catch(() => []),
-      request('/packages').catch(() => []),
-      request('/workshops').catch(() => [])
-    ]);
+    try {
+      const landing = await request('/public/landing');
+      return {
+        ...landing,
+        services: normalizeList(landing.services, ['services']),
+        packages: normalizeList(landing.packages, ['packages']),
+        workshops: normalizeList(landing.workshops, ['workshops']),
+        testimonials: landing.testimonials || [],
+        completedServices: landing.completedServices || 0,
+        happyCustomers: landing.happyCustomers || 0,
+        emergencyHandled: landing.emergencyHandled || 0
+      };
+    } catch (_error) {
+      const [services, packagesData, workshops] = await Promise.all([
+        request('/services').catch(() => []),
+        request('/packages').catch(() => []),
+        request('/workshops').catch(() => [])
+      ]);
 
-    return {
-      services: normalizeList(services, ['services']),
-      packages: normalizeList(packagesData, ['packages']),
-      workshops: normalizeList(workshops, ['workshops']),
-      testimonials: []
-    };
+      return {
+        services: normalizeList(services, ['services']),
+        packages: normalizeList(packagesData, ['packages']),
+        workshops: normalizeList(workshops, ['workshops']),
+        testimonials: [],
+        completedServices: 0,
+        happyCustomers: 0,
+        emergencyHandled: 0
+      };
+    }
   }
 
   if (path === '/driver/dashboard') {

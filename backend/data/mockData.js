@@ -27,9 +27,9 @@ export const db = {
     { id: 's9', name: 'Emergency Assistance', category: 'Emergency', price: 750, duration: 'Priority', enabled: true, icon: 'Siren', description: 'Roadside help for breakdowns, lockouts, jump starts, and urgent safety issues.' }
   ],
   packages: [
-    { id: 'p1', name: 'Basic', price: 199, period: 'month', enabled: true, features: ['1 AI diagnostic/month', 'Booking tracking', 'Workshop ratings', 'Support chat'] },
-    { id: 'p2', name: 'Plus', price: 399, period: 'month', enabled: true, popular: true, features: ['5 AI diagnostics/month', 'Priority workshops', 'Emergency dispatch discount', 'Maintenance reminders'] },
-    { id: 'p3', name: 'Premium', price: 799, period: 'month', enabled: true, features: ['Unlimited diagnostics', '24/7 emergency priority', 'Free annual inspection', 'Dedicated support advisor'] }
+    { id: 'p1', name: 'Basic', price: 499, period: 'month', enabled: true, features: ['1 AI diagnostic/month', 'Booking tracking', 'Workshop ratings', 'Support chat'] },
+    { id: 'p2', name: 'Premium', price: 1299, period: 'month', enabled: true, popular: true, features: ['5 AI diagnostics/month', 'Priority workshops', 'Emergency dispatch discount', 'Maintenance reminders'] },
+    { id: 'p3', name: 'Fleet', price: 5999, period: 'month', enabled: true, features: ['Unlimited diagnostics', '24/7 emergency priority', 'Fleet vehicle monitoring', 'Dedicated support advisor'] }
   ],
   bookings: [
     { id: 'b1', driverId: 'u1', vehicleId: 'v1', workshopId: 'w1', serviceId: 's2', status: 'in_progress', date: '2026-04-28', time: '10:30', slot: '2026-04-28T08:30:00.000Z', price: 650, progress: 55, issue: 'Oil change due soon', timeline: ['Booked', 'Accepted', 'Vehicle received', 'Service in progress'] },

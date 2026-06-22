@@ -13,9 +13,9 @@ export const fallbackWorkshops = [
 ];
 
 export const fallbackPackages = [
-  { id: 'pkg-basic', name: 'Basic', price: 199, period: 'month', enabled: true, features: ['1 AI diagnostic/month', 'Booking tracking', 'Support chat'] },
-  { id: 'pkg-plus', name: 'Plus', price: 399, period: 'month', enabled: true, popular: true, features: ['5 AI diagnostics/month', 'Priority workshops', 'Emergency discount'] },
-  { id: 'pkg-premium', name: 'Premium', price: 799, period: 'month', enabled: true, features: ['Unlimited diagnostics', '24/7 emergency priority', 'Annual inspection'] }
+  { id: 'pkg-basic', name: 'Basic', price: 499, period: 'month', enabled: true, features: ['1 AI diagnostic/month', 'Booking tracking', 'Support chat'] },
+  { id: 'pkg-premium', name: 'Premium', price: 1299, period: 'month', enabled: true, popular: true, features: ['5 AI diagnostics/month', 'Priority workshops', 'Emergency discount'] },
+  { id: 'pkg-fleet', name: 'Fleet', price: 5999, period: 'month', enabled: true, features: ['Unlimited diagnostics', '24/7 emergency priority', 'Fleet monitoring'] }
 ];
 
 export const fallbackBookings = [

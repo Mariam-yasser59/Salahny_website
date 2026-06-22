@@ -6,6 +6,7 @@ export default function About() {
   const { data } = useApi('/public/landing', { workshops: [], services: [] });
   const workshops = data?.workshops || [];
   const services = data?.services || [];
+  const serviceNames = buildServiceNames(services);
 
   const stats = [
     ['Workshops', workshops.length],
@@ -43,7 +44,7 @@ export default function About() {
         <img src="/images/service-trust.jpg" alt="Customer and mechanic agreeing on vehicle service" />
         <div>
           <SectionHeader eyebrow="Services" title="A complete vehicle service marketplace" />
-          <div className="chips">{services.slice(0, 8).map((service) => <span key={service.id || service.name}>{service.name}</span>)}</div>
+          <div className="chips">{serviceNames.map((service) => <span key={service}>{service}</span>)}</div>
         </div>
       </section>
 
@@ -64,3 +65,39 @@ export default function About() {
     </main>
   );
 }
+
+const buildServiceNames = (apiServices) => {
+  const names = [];
+  const seen = new Set();
+
+  [...apiServices, ...serviceHighlights].forEach((service) => {
+    const rawName = typeof service === 'string' ? service : service?.name || service?.title;
+    if (!rawName) return;
+    const name = serviceAliases[rawName.trim().toLowerCase()] || rawName.trim();
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    names.push(name);
+  });
+
+  return names.slice(0, 8);
+};
+
+const serviceAliases = {
+  'repair service': 'Full Mechanical Repair',
+  'towing': 'Towing Service',
+  'emergency assistance': 'Emergency Roadside Assistance',
+  'ai/obd diagnostics': 'AI Diagnostics',
+  'tire service': 'Tire Rotation',
+};
+
+const serviceHighlights = [
+  'Oil Change',
+  'AI Diagnostics',
+  'Emergency Roadside Assistance',
+  'Towing Service',
+  'Electrical Diagnostics',
+  'Battery Service',
+  'Brake Service',
+  'Full Mechanical Repair',
+];

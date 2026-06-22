@@ -37,7 +37,8 @@ const buildServiceCatalog = (apiServices) => {
     const name = service?.name || service?.title;
     if (!name) return;
 
-    const key = name.trim().toLowerCase();
+    const canonical = serviceAliases[name.trim().toLowerCase()] || name.trim();
+    const key = canonical.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
 
@@ -45,7 +46,7 @@ const buildServiceCatalog = (apiServices) => {
     unique.push({
       ...service,
       key,
-      name,
+      name: canonical,
       description:
         service.description ||
         service.details ||
@@ -58,7 +59,7 @@ const buildServiceCatalog = (apiServices) => {
 
   return unique.slice(0, serviceImages.length).map((service, index) => ({
     ...service,
-    image: serviceImages[index],
+    image: serviceImageByName[service.key] || serviceImages[index],
   }));
 };
 
@@ -146,6 +147,19 @@ const curatedServices = [
     duration: '30-60 min',
   },
 ];
+
+const serviceAliases = {
+  'repair service': 'Full Mechanical Repair',
+  'towing': 'Towing Service',
+  'emergency assistance': 'Emergency Roadside Assistance',
+  'ai/obd diagnostics': 'AI Diagnostics',
+  'tire service': 'Tire Rotation',
+};
+
+const serviceImageByName = {
+  'brake service': '/images/brake-service.jpg',
+  'full mechanical repair': '/images/mechanical-repair.jpg',
+};
 
 const serviceImages = [
   '/images/oil-service.jpg',

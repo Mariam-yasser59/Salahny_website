@@ -606,6 +606,11 @@ textarea:focus {
   box-shadow: 0 0 0 5px rgba(245, 199, 107, 0.08);
 }
 
+select option {
+  color: #111318;
+  background: #fff8f5;
+}
+
 /* Dashboard */
 .dashboard-shell {
   display: grid;
