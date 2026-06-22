@@ -11,6 +11,9 @@ export default function DashboardLayout({ role }) {
   const meta = roleMeta[role] || { title: 'Portal', home: '/' };
 
   if (!user || user.role !== role) return <Navigate to={`/login/${role}`} replace />;
+  if (role === 'driver' && ['pending', 'rejected', 'suspended', 'deleted'].includes(String(user.status || '').toLowerCase())) {
+    return <Navigate to="/login/driver" replace />;
+  }
   if (role === 'workshop' && ['pending', 'rejected', 'suspended', 'deleted'].includes(String(user.status || user.verificationStatus || '').toLowerCase())) {
     return <Navigate to="/login/workshop" replace />;
   }

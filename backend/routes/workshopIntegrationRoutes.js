@@ -26,5 +26,8 @@ trackingRoutes.use(requireAuth(['workshop']));
 trackingRoutes.post('/:bookingId', workshop.tracking);
 
 export const notificationRoutes = Router();
-notificationRoutes.use(requireAuth(['workshop']));
+notificationRoutes.use(requireAuth());
 notificationRoutes.get('/', workshop.notifications);
+notificationRoutes.get('/unread-count', workshop.unreadNotificationCount);
+notificationRoutes.patch('/:id/read', workshop.markNotificationRead);
+notificationRoutes.post('/read-all', workshop.markAllNotificationsRead);

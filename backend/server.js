@@ -13,6 +13,10 @@ import publicRoutes from './routes/publicRoutes.js';
 import { requireAuth } from './middleware/auth.js';
 import { db, nextId } from './data/mockData.js';
 import { connectDatabase, databaseStatus } from './services/database.js';
+import { listServices, listWorkshops } from './services/persistentData.js';
+import * as driverController from './controllers/driverController.js';
+import * as workshopController from './controllers/workshopController.js';
+import * as adminController from './controllers/adminController.js';
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -69,6 +73,32 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/diagnostics', diagnosticRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.get('/api/services', async (_req, res) => res.json((await listServices()).filter((service) => service.enabled !== false)));
+app.get('/api/packages', (_req, res) => res.json(db.packages.filter((pkg) => pkg.enabled !== false)));
+app.get('/api/workshops', async (_req, res) => res.json(await listWorkshops()));
+app.get('/api/workshops/:id', driverController.getWorkshop);
+app.get('/api/users/me', requireAuth(), (req, res) => {
+  const user = db.users.find((item) => item.id === req.user.id || item.email === req.user.email);
+  res.json({ user: user ? Object.fromEntries(Object.entries(user).filter(([key]) => key !== 'password')) : req.user });
+});
+app.get('/api/vehicles', requireAuth(['driver']), driverController.getVehicles);
+app.post('/api/vehicles', requireAuth(['driver']), driverController.addVehicle);
+app.patch('/api/vehicles/:id', requireAuth(['driver']), driverController.updateVehicle);
+app.put('/api/vehicles/:id', requireAuth(['driver']), driverController.updateVehicle);
+app.delete('/api/vehicles/:id', requireAuth(['driver']), driverController.deleteVehicle);
+app.get('/api/bookings', requireAuth(), (req, res) => {
+  if (req.user.role === 'admin') return adminController.bookings(req, res);
+  if (req.user.role === 'workshop') return workshopController.bookings(req, res);
+  return driverController.listBookings(req, res);
+});
+app.post('/api/bookings', requireAuth(['driver']), driverController.createBooking);
+app.get('/api/bookings/:id', requireAuth(['driver']), driverController.getBooking);
+app.patch('/api/bookings/:id/status', requireAuth(['admin', 'workshop']), (req, res) => {
+  if (req.user.role === 'workshop') return workshopController.updateRequestStatus(req, res);
+  req.params.id = req.params.id;
+  req.body.status = req.body.status || req.body.action;
+  return adminController.updateBooking(req, res);
+});
 app.get('/api/documents', requireAuth(['workshop']), (req, res) => {
   const workshop = db.workshops.find((item) => item.userId === req.user.id);
   res.json({

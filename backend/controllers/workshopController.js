@@ -392,6 +392,19 @@ export const shareDiagnostic = (req, res) => {
 };
 
 export const notifications = (req, res) => res.json({ success: true, data: db.notifications.filter((item) => item.userId === req.user.id) });
+export const unreadNotificationCount = (req, res) => res.json({ success: true, data: { count: db.notifications.filter((item) => item.userId === req.user.id && !item.readAt).length } });
+export const markNotificationRead = (req, res) => {
+  const notification = db.notifications.find((item) => item.id === req.params.id && item.userId === req.user.id);
+  if (!notification) return res.status(404).json({ message: 'Notification not found' });
+  notification.readAt = new Date().toISOString();
+  res.json({ success: true, data: notification });
+};
+export const markAllNotificationsRead = (req, res) => {
+  db.notifications.filter((item) => item.userId === req.user.id).forEach((item) => {
+    item.readAt = item.readAt || new Date().toISOString();
+  });
+  res.json({ success: true });
+};
 export const tracking = (req, res) => {
   const update = { id: nextId('tr', 'trackingUpdates'), bookingId: req.params.bookingId, workshopUserId: req.user.id, ...req.body, createdAt: new Date().toISOString() };
   db.trackingUpdates.push(update);

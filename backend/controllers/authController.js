@@ -1,6 +1,6 @@
 import { db, nextId } from '../data/mockData.js';
 import { signToken } from '../middleware/auth.js';
-import { notifyWorkshopRegistration } from '../services/emailNotifications.js';
+import { notifyWorkshopRegistration, sendEmailNotification } from '../services/emailNotifications.js';
 
 const publicUser = (user) => {
   const { password, ...safeUser } = user;
@@ -26,6 +26,41 @@ export const login = (req, res) => {
 export const driverLogin = loginWithRole('driver');
 export const workshopLogin = loginWithRole('workshop');
 export const adminLogin = loginWithRole('admin');
+
+export const googleLogin = (req, res) => {
+  const { email, name, role = 'driver' } = req.body;
+  if (!email) return res.status(400).json({ message: 'Google email is required' });
+  let user = db.users.find((item) => item.email === email);
+  if (!user) {
+    user = { id: nextId('u', 'users'), role, name: name || email.split('@')[0], email, password: '', phone: '', status: role === 'admin' ? 'active' : 'pending', joinedAt: new Date().toISOString().slice(0, 10), provider: 'google' };
+    db.users.push(user);
+  }
+  res.json({ token: signToken(user), user: publicUser(user) });
+};
+
+export const forgotPassword = (req, res) => {
+  const user = db.users.find((item) => item.email === req.body.email);
+  if (user) {
+    user.resetToken = nextId('reset', 'users');
+    user.resetTokenExpiresAt = Date.now() + 1000 * 60 * 30;
+    sendEmailNotification({
+      to: user.email,
+      subject: 'Reset your Salahny password',
+      text: `Use this reset token to update your password: ${user.resetToken}`,
+      html: `<p>Use this reset token to update your Salahny password:</p><p><strong>${user.resetToken}</strong></p>`
+    }).catch((error) => console.warn(error.message));
+  }
+  res.json({ message: 'If the email exists, password reset instructions were sent.' });
+};
+
+export const resetPassword = (req, res) => {
+  const user = db.users.find((item) => item.resetToken === req.body.token && item.resetTokenExpiresAt > Date.now());
+  if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
+  user.password = req.body.password;
+  delete user.resetToken;
+  delete user.resetTokenExpiresAt;
+  res.json({ message: 'Password updated successfully' });
+};
 
 export const registerDriver = (req, res) => {
   const { name, email, password, phone, city } = req.body;

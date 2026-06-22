@@ -9,3 +9,11 @@ export const getLandingData = async (_req, res) => {
     workshops: await listWorkshops()
   });
 };
+
+export const publicWorkshops = async (_req, res) => {
+  const workshops = (await listWorkshops()).filter((workshop) => {
+    const status = String(workshop.accountStatus || workshop.status || '').toLowerCase();
+    return workshop.verified === true || workshop.isVerified === true || ['active', 'approved', 'verified'].includes(status);
+  });
+  res.json({ success: true, data: workshops });
+};
