@@ -15,6 +15,7 @@ import { db, nextId } from './data/mockData.js';
 import { connectDatabase, databaseStatus } from './services/database.js';
 import { listServices, listWorkshops } from './services/persistentData.js';
 import { emailConfigurationStatus } from './services/emailNotifications.js';
+import { normalizePublicPackages } from './services/packagePricing.js';
 import * as driverController from './controllers/driverController.js';
 import * as workshopController from './controllers/workshopController.js';
 import * as adminController from './controllers/adminController.js';
@@ -77,7 +78,7 @@ app.use('/api/diagnostics', diagnosticRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.get('/api/services', async (_req, res) => res.json((await listServices()).filter((service) => service.enabled !== false)));
-app.get('/api/packages', (_req, res) => res.json(db.packages.filter((pkg) => pkg.enabled !== false)));
+app.get('/api/packages', (_req, res) => res.json(normalizePublicPackages(db.packages.filter((pkg) => pkg.enabled !== false))));
 app.get('/api/workshops', async (_req, res) => res.json(await listWorkshops()));
 app.get('/api/workshops/:id', driverController.getWorkshop);
 app.get('/api/users/me', requireAuth(), (req, res) => {

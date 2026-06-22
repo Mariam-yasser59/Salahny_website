@@ -1,4 +1,5 @@
 import { db } from '../data/mockData.js';
+import { normalizePublicPackages } from '../services/packagePricing.js';
 import { listBookings, listEmergencyRequests, listServices, listWorkshops } from '../services/persistentData.js';
 
 export const getLandingData = async (_req, res) => {
@@ -12,7 +13,7 @@ export const getLandingData = async (_req, res) => {
 
   res.json({
     services: services.filter((service) => service.enabled !== false),
-    packages: db.packages.filter((pkg) => pkg.enabled),
+    packages: normalizePublicPackages(db.packages.filter((pkg) => pkg.enabled)),
     testimonials: db.reviews,
     workshops,
     completedServices: completedBookings.length,
