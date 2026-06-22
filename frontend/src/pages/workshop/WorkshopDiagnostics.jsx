@@ -6,7 +6,7 @@ import { post } from '../../services/api.js';
 export default function WorkshopDiagnostics() {
   const { state } = useLocation();
   const [bookingId, setBookingId] = useState(state?.bookingId || '');
-  const [vitals, setVitals] = useState({ rpm: 820, coolantTemp: 92, speed: 0, map: 38, maf: 4.8, o2Voltage: 0.74, faultCodes: 'P0420, P0171', battery: 12.4, engineLoad: 32 });
+  const [vitals, setVitals] = useState({ rpm: '', coolantTemp: '', speed: '', map: '', maf: '', o2Voltage: '', faultCodes: '', battery: '', engineLoad: '' });
   const [report, setReport] = useState(null);
   const [obdFile, setObdFile] = useState(null);
   const [error, setError] = useState('');
@@ -32,7 +32,7 @@ export default function WorkshopDiagnostics() {
     try {
       parsed = obdFile.name.toLowerCase().endsWith('.json') ? JSON.parse(text) : parseCsvVitals(text);
     } catch (_err) {
-      setError('Could not read this OBD file. Use CSV or JSON with rpm, speed, coolantTemp, battery, and engineLoad fields.');
+      setError('Could not read this OBD file. Use CSV or JSON with columns such as rpm, coolantTemp, speed, map, maf, o2Voltage, battery, engineLoad, and faultCodes.');
       setScanning(false);
       return;
     }
@@ -49,10 +49,23 @@ export default function WorkshopDiagnostics() {
     <div className="dash-stack">
       <SectionHeader title="Workshop Diagnostics" />
       <section className="panel form-grid">
-        <input placeholder="Booking ID" value={bookingId} onChange={(e) => setBookingId(e.target.value)} />
-        <input type="file" accept=".csv,.json" onChange={(e) => setObdFile(e.target.files?.[0] || null)} />
-        {Object.entries(vitals).map(([key, value]) => (
-          <input key={key} type={key === 'faultCodes' ? 'text' : 'number'} placeholder={key} value={value} onChange={(e) => setVitals({ ...vitals, [key]: key === 'faultCodes' ? e.target.value : Number(e.target.value) })} />
+        <p className="form-note">Required OBD data is highlighted with names and units. You can enter readings manually or upload a CSV/JSON file with matching field names.</p>
+        <label className="field-card">
+          <span>Linked Booking ID</span>
+          <small>Diagnostics must be attached to a workshop booking.</small>
+          <input placeholder="Booking ID" value={bookingId} onChange={(e) => setBookingId(e.target.value)} />
+        </label>
+        <label className="field-card">
+          <span>Upload OBD File (CSV or JSON)</span>
+          <small>Accepted fields: rpm, coolantTemp, speed, map, maf, o2Voltage, battery, engineLoad, faultCodes.</small>
+          <input type="file" accept=".csv,.json" onChange={(e) => setObdFile(e.target.files?.[0] || null)} />
+        </label>
+        {workshopObdFields.map((field) => (
+          <label className="field-card" key={field.key}>
+            <span>{field.label}</span>
+            <small>{field.help}</small>
+            <input type={field.key === 'faultCodes' ? 'text' : 'number'} step={field.step || '1'} placeholder={field.placeholder} value={vitals[field.key]} onChange={(e) => setVitals({ ...vitals, [field.key]: field.key === 'faultCodes' ? e.target.value : e.target.value })} />
+          </label>
         ))}
         <button className="primary-btn" disabled={!bookingId || scanning} onClick={run}>Run AI Analysis</button>
         <button className="ghost-btn" disabled={!bookingId || !obdFile} onClick={upload}>Upload OBD file</button>
@@ -72,7 +85,7 @@ export default function WorkshopDiagnostics() {
             {(report.faultCodes || String(vitals.faultCodes || '').split(',').map((item) => item.trim()).filter(Boolean)).map((code) => <span key={code}>{code} - review</span>)}
           </div>
           <div className="feature-grid three">
-            {Object.entries(report.vitals || normalizeVitals(vitals)).map(([key, value]) => <article className="compact-card" key={key}><h3>{key}</h3><p>{String(value)}</p></article>)}
+            {Object.entries(report.vitals || normalizeVitals(vitals)).map(([key, value]) => <article className="compact-card" key={key}><h3>{fieldLabel(key)}</h3><p>{String(value)}</p></article>)}
           </div>
           <p>Linked request ID: {bookingId}</p>
           <div className="actions">
@@ -92,16 +105,30 @@ const parseCsvVitals = (text) => {
   const values = rows[1] || [];
   return headers.reduce((acc, header, index) => {
     const normalized = header.replace(/[\s_-]+/g, '').toLowerCase();
-    const key = { coolanttemp: 'coolantTemp', engineload: 'engineLoad', batteryvoltage: 'battery' }[normalized] || normalized;
-    const value = Number(values[index]);
-    if (!Number.isNaN(value)) acc[key] = value;
+    const key = { coolanttemp: 'coolantTemp', engineload: 'engineLoad', batteryvoltage: 'battery', o2voltage: 'o2Voltage', intakemanifoldpressure: 'map' }[normalized] || normalized;
+    const numericValue = Number(values[index]);
+    acc[key] = key === 'faultCodes' ? values[index] : Number.isNaN(numericValue) ? values[index] : numericValue;
     return acc;
   }, {});
 };
 
 const normalizeVitals = (values) => ({
-  ...values,
+  ...Object.fromEntries(Object.entries(values).map(([key, value]) => [key, key === 'faultCodes' || value === '' ? value : Number(value)])),
   faultCodes: typeof values.faultCodes === 'string' ? values.faultCodes.split(',').map((item) => item.trim()).filter(Boolean) : values.faultCodes
 });
 
 const urgencyFromScore = (score = 0) => Number(score) > 80 ? 'Healthy' : Number(score) > 60 ? 'Warning' : 'Critical';
+
+const workshopObdFields = [
+  { key: 'rpm', label: 'Engine RPM (RPM)', help: 'Current engine speed from OBD.', placeholder: 'Example: 850' },
+  { key: 'coolantTemp', label: 'Coolant Temperature (C)', help: 'Engine coolant temperature.', placeholder: 'Example: 92' },
+  { key: 'speed', label: 'Vehicle Speed (km/h)', help: 'Speed reported by the vehicle.', placeholder: 'Example: 0' },
+  { key: 'map', label: 'MAP / Intake Pressure (kPa)', help: 'Intake manifold absolute pressure.', placeholder: 'Example: 38' },
+  { key: 'maf', label: 'MAF Air Flow (g/s)', help: 'Mass air flow sensor reading.', placeholder: 'Example: 4.8', step: '0.1' },
+  { key: 'o2Voltage', label: 'O2 Sensor Voltage (V)', help: 'Oxygen sensor voltage.', placeholder: 'Example: 0.74', step: '0.01' },
+  { key: 'battery', label: 'Battery Voltage (V)', help: 'Battery or charging voltage.', placeholder: 'Example: 12.4', step: '0.1' },
+  { key: 'engineLoad', label: 'Engine Load (%)', help: 'Calculated engine load percentage.', placeholder: 'Example: 32' },
+  { key: 'faultCodes', label: 'Fault Codes (DTC)', help: 'Comma-separated codes from scanner.', placeholder: 'Example: P0420, P0171' }
+];
+
+const fieldLabel = (key) => workshopObdFields.find((field) => field.key === key)?.label || key;

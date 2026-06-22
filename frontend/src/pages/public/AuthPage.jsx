@@ -3,11 +3,6 @@ import { useState } from 'react';
 import { useAuth } from '../../services/AuthContext.jsx';
 
 const labels = { driver: 'Driver', workshop: 'Workshop', admin: 'Super Admin' };
-const demo = {
-  driver: ['driver@salahny.com', 'driver123'],
-  workshop: ['workshop@salahny.com', 'workshop123'],
-  admin: ['admin@salahny.com', 'admin123']
-};
 
 export default function AuthPage({ mode }) {
   const { role = 'driver' } = useParams();
@@ -17,10 +12,10 @@ export default function AuthPage({ mode }) {
   const [form, setForm] = useState({
     name: '',
     ownerName: '',
-    email: demo[currentRole]?.[0] || '',
-    password: demo[currentRole]?.[1] || '',
+    email: '',
+    password: '',
     phone: '',
-    city: 'Cairo',
+    city: '',
     address: '',
     workshopName: '',
     workshopAddress: '',

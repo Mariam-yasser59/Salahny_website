@@ -1,5 +1,4 @@
 import { API_BASE_URL, STORAGE_KEYS } from '../config/api.js';
-import { fallbackBookings, fallbackPackages, fallbackServices, fallbackWorkshops } from '../data/fallbackData.js';
 
 const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
@@ -69,8 +68,8 @@ const withFallback = async (primary, fallback) => {
 const virtualGet = async (path) => {
   if (path === '/public/landing') {
     const [services, packagesData, workshops] = await Promise.all([
-      request('/services').catch(() => fallbackServices),
-      request('/packages').catch(() => fallbackPackages),
+      request('/services').catch(() => []),
+      request('/packages').catch(() => []),
       request('/workshops').catch(() => [])
     ]);
 
@@ -86,7 +85,7 @@ const virtualGet = async (path) => {
     const [me, vehicles, bookings, workshops, notifications] = await Promise.all([
       request('/users/me').catch(() => null),
       request('/vehicles').catch(() => []),
-      request('/bookings').catch(() => fallbackBookings),
+      request('/bookings').catch(() => []),
       request('/workshops').catch(() => []),
       request('/notifications').catch(() => [])
     ]);
@@ -108,15 +107,15 @@ const virtualGet = async (path) => {
   }
 
   if (path === '/driver/vehicles') return normalizeList(await request('/vehicles'), ['vehicles']);
-  if (path === '/driver/services') return normalizeList(await request('/services').catch(() => fallbackServices), ['services']);
+  if (path === '/driver/services') return normalizeList(await request('/services').catch(() => []), ['services']);
   if (path === '/driver/workshops') return normalizeList(await request('/workshops').catch(() => []), ['workshops']);
 
   if (path === '/vehicles') return normalizeList(await request('/vehicles'), ['vehicles']);
-  if (path === '/services') return normalizeList(await request('/services').catch(() => fallbackServices), ['services']);
+  if (path === '/services') return normalizeList(await request('/services').catch(() => []), ['services']);
   if (path === '/workshops') return normalizeList(await request('/workshops').catch(() => []), ['workshops']);
 
   if (path.startsWith('/driver/workshops/')) return request(`/workshops/${path.split('/').pop()}`);
-  if (path === '/driver/bookings') return normalizeList(await request('/bookings').catch(() => fallbackBookings), ['bookings']).map(adaptBooking);
+  if (path === '/driver/bookings') return normalizeList(await request('/bookings').catch(() => []), ['bookings']).map(adaptBooking);
   if (path.startsWith('/driver/bookings/')) return adaptBooking(await request(`/bookings/${path.split('/').pop()}`));
 
   if (path === '/driver/diagnostics') return normalizeList(await request('/driver/diagnostics').catch(() => []), ['diagnostics']);
@@ -170,7 +169,7 @@ const virtualGet = async (path) => {
   if (path === '/workshop/services') {
     return withFallback(
       () => request('/workshop-portal/services').then((data) => normalizeList(data, ['services', 'data'])),
-      () => request('/workshop/services').then((data) => normalizeList(data, ['services', 'data'])).catch(() => fallbackServices)
+      () => request('/workshop/services').then((data) => normalizeList(data, ['services', 'data'])).catch(() => [])
     );
   }
 
@@ -243,21 +242,21 @@ const virtualGet = async (path) => {
   if (path === '/workshop/documents') return request('/documents').then((data) => normalizeList(data, ['documents', 'data']));
 
   if (path === '/admin/dashboard') return request('/admin/dashboard').catch(() => ({
-    totalUsers: 128,
-    totalDrivers: 96,
-    totalWorkshops: 18,
-    totalBookings: fallbackBookings.length,
-    revenue: 191900,
-    pendingApprovals: 4,
+    totalUsers: 0,
+    totalDrivers: 0,
+    totalWorkshops: 0,
+    totalBookings: 0,
+    revenue: 0,
+    pendingApprovals: 0,
     recentActivity: []
   }));
 
   if (path === '/admin/approvals') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['pending', 'inactive'].includes(item.status));
   if (path === '/admin/drivers') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['driver', 'user'].includes(String(item.role).toLowerCase()));
-  if (path === '/admin/workshops') return normalizeList(await request('/admin/workshops').catch(() => fallbackWorkshops), ['workshops']);
-  if (path === '/admin/bookings') return normalizeList(await request('/admin/bookings').catch(() => fallbackBookings), ['bookings']).map(adaptBooking);
-  if (path === '/admin/services') return normalizeList(await request('/services').catch(() => fallbackServices), ['services']);
-  if (path === '/admin/packages') return normalizeList(await request('/packages').catch(() => fallbackPackages), ['packages']);
+  if (path === '/admin/workshops') return normalizeList(await request('/admin/workshops').catch(() => []), ['workshops']);
+  if (path === '/admin/bookings') return normalizeList(await request('/admin/bookings').catch(() => []), ['bookings']).map(adaptBooking);
+  if (path === '/admin/services') return normalizeList(await request('/services').catch(() => []), ['services']);
+  if (path === '/admin/packages') return normalizeList(await request('/packages').catch(() => []), ['packages']);
   if (path === '/admin/logs') return [];
   if (path === '/admin/settings') return request('/users/me').then((data) => data.user || data);
 

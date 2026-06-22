@@ -679,6 +679,34 @@ textarea:focus {
   grid-column: 1 / -1;
 }
 
+.field-card {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid rgba(246, 185, 59, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.field-card span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.field-card small {
+  color: var(--gold);
+  line-height: 1.35;
+}
+
+.field-card input,
+.field-card select {
+  width: 100%;
+}
+
+.form-grid .form-note {
+  grid-column: 1 / -1;
+}
+
 .booking-card {
   display: grid;
   gap: 10px;
