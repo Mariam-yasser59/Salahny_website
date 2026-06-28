@@ -15,7 +15,7 @@ export default function AdminDashboard() {
         <StatCard label="Pending approvals" value={data.pendingApprovals} icon={BadgeCheck} />
       </div>
       <SectionHeader title="Recent Activity" />
-      <section className="panel">{data.recentActivity.map((item) => <p className="activity-row" key={item.id}>{item.date} · {item.message}</p>)}</section>
+      <section className="panel">{(data.recentActivity || []).map((item) => <p className="activity-row" key={item.id}>{item.date} · {item.message}</p>)}</section>
     </div>
   );
 }

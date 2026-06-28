@@ -99,19 +99,46 @@ export const createBooking = async (req, res) => {
 export const diagnostics = (req, res) => res.json(db.diagnostics.filter((item) => item.driverId === req.user.id));
 
 export const runDiagnostic = (req, res) => {
-  const engineLoad = Number(req.body.engineLoad || 30);
-  const battery = Number(req.body.battery || 12.4);
-  const healthScore = Math.max(45, Math.min(98, Math.round(100 - engineLoad * 0.45 - (battery < 12 ? 12 : 0))));
-  const possibleFault = battery < 12 ? 'Battery degradation' : engineLoad > 60 ? 'High engine load pattern' : 'Oil change due soon';
+  const sensors = req.body.sensorReadings || req.body.vitals || req.body;
+  const engineLoad = Number(sensors.ENGINE_LOAD ?? sensors.engineLoad ?? 30);
+  const battery = Number(sensors.CONTROL_MODULE_VOLTAGE ?? sensors.battery ?? 12.4);
+  const coolant = Number(sensors.COOLANT_TEMPERATURE ?? sensors.coolantTemp ?? 90);
+  const rpm = Number(sensors.ENGINE_RPM ?? sensors.rpm ?? 800);
+  const fuelTrimShort = Number(sensors.SHORT_TERM_FUEL_TRIM_BANK_1 ?? 0);
+  const fuelTrimLong = Number(sensors.LONG_TERM_FUEL_TRIM_BANK_1 ?? 0);
+  const catTemp1 = Number(sensors.CATALYST_TEMPERATURE_BANK1_SENSOR1 ?? 500);
+
+  let penalty = 0;
+  if (battery < 12) penalty += 15;
+  if (engineLoad > 70) penalty += 12;
+  if (coolant > 105) penalty += 15;
+  if (rpm > 4500) penalty += 8;
+  if (Math.abs(fuelTrimShort) > 10 || Math.abs(fuelTrimLong) > 10) penalty += 10;
+  if (catTemp1 > 800) penalty += 10;
+  const faultCodes = req.body.faultCodes || [];
+  if (faultCodes.length > 0) penalty += Math.min(faultCodes.length * 8, 24);
+
+  const healthScore = Math.max(30, Math.min(98, Math.round(100 - penalty)));
+
+  let possibleFault = 'System nominal';
+  if (battery < 12) possibleFault = 'Battery / charging system degradation';
+  else if (coolant > 105) possibleFault = 'Engine overheating – coolant system';
+  else if (Math.abs(fuelTrimShort) > 10) possibleFault = 'Fuel trim out of range – fuel system';
+  else if (engineLoad > 70) possibleFault = 'High engine load pattern';
+  else if (catTemp1 > 800) possibleFault = 'Catalyst overtemperature';
+  else if (faultCodes.length > 0) possibleFault = `DTC detected: ${faultCodes.slice(0, 2).join(', ')}`;
+  else if (healthScore < 75) possibleFault = 'Oil change or preventive service due';
   const diagnostic = {
     id: nextId('d', 'diagnostics'),
     driverId: req.user.id,
-    date: new Date().toISOString().slice(0, 10),
+    date: new Date().toISOString(),
     probability: healthScore > 80 ? 42 : 76,
     recommendation: healthScore > 80 ? 'Schedule preventive service within 2 weeks.' : 'Book diagnostics service as soon as possible.',
     possibleFault,
     healthScore,
-    ...req.body
+    faultCodes,
+    sensorReadings: sensors,
+    vitals: sensors,
   };
   db.diagnostics.unshift(diagnostic);
   res.status(201).json(diagnostic);
@@ -122,6 +149,105 @@ export const updateProfile = (req, res) => {
   const user = db.users.find((item) => item.id === req.user.id);
   Object.assign(user, req.body);
   res.json(user);
+};
+
+// ─── Emergency ───────────────────────────────────────────────────────────────
+
+export const createEmergency = (req, res) => {
+  const { address, issueDescription, type, emergencyType, locationNotes = '', latitude, longitude, phone = '', vehicleInfo = '', vehicleLabel = '' } = req.body;
+  if (!address || !issueDescription) return res.status(400).json({ message: 'address and issueDescription are required' });
+  const nearest = db.workshops.find((w) => w.verified && w.accountStatus === 'active') || db.workshops[0];
+  const request = {
+    id: nextId('er', 'emergencyRequests'),
+    driverId: req.user.id,
+    workshopId: nearest?.id || null,
+    emergencyType: emergencyType || type || 'other',
+    issueDescription,
+    address,
+    latitude: latitude ? Number(latitude) : null,
+    longitude: longitude ? Number(longitude) : null,
+    locationNotes,
+    phone,
+    vehicleInfo,
+    vehicleLabel,
+    status: nearest ? 'assigned' : 'pending_admin_assignment',
+    createdAt: new Date().toISOString()
+  };
+  db.emergencyRequests.push(request);
+  if (nearest) {
+    db.notifications.unshift({ id: nextId('n', 'notifications'), userId: nearest.userId, title: 'Emergency request assigned', message: `${req.user.email} needs ${request.emergencyType} assistance.`, type: 'emergency', createdAt: new Date().toISOString() });
+  }
+  res.status(201).json({ success: true, data: request });
+};
+
+export const getMyEmergencies = (req, res) => {
+  const requests = db.emergencyRequests.filter((item) => item.driverId === req.user.id).map((item) => ({
+    ...item,
+    workshop: item.workshopId ? findById('workshops', item.workshopId) : null
+  }));
+  res.json({ success: true, data: requests });
+};
+
+export const cancelEmergency = (req, res) => {
+  const request = db.emergencyRequests.find((item) => item.id === req.params.id && item.driverId === req.user.id);
+  if (!request) return res.status(404).json({ message: 'Emergency request not found' });
+  if (['completed', 'cancelled', 'rejected'].includes(request.status)) return res.status(409).json({ message: 'This request can no longer be cancelled' });
+  request.status = 'cancelled';
+  request.cancelledReason = req.body.reason || 'Cancelled by driver';
+  res.json({ success: true, data: request });
+};
+
+// ─── Direct Messages (Driver ↔ Admin) ────────────────────────────────────────
+
+export const getDirectMessages = (req, res) => {
+  const threadKey = [req.user.id, 'admin1'].sort().join(':');
+  res.json({ success: true, data: db.directMessages.filter((m) => m.threadKey === threadKey) });
+};
+
+export const sendDirectMessage = (req, res) => {
+  const { text = '' } = req.body;
+  if (!text.trim()) return res.status(400).json({ message: 'Message text is required' });
+  const threadKey = [req.user.id, 'admin1'].sort().join(':');
+  const message = {
+    id: nextId('dm', 'directMessages'),
+    threadKey,
+    senderRole: 'driver',
+    senderId: req.user.id,
+    senderName: req.user.name || req.user.email,
+    text: text.trim(),
+    createdAt: new Date().toISOString()
+  };
+  db.directMessages.push(message);
+  db.notifications.unshift({ id: nextId('n', 'notifications'), userId: 'admin1', title: 'Driver message', message: text.trim(), type: 'chat', createdAt: new Date().toISOString() });
+  res.status(201).json({ success: true, data: message });
+};
+
+// ─── Package Checkout (Demo) ──────────────────────────────────────────────────
+
+export const packageCheckout = (req, res) => {
+  const { packageId, cardLast4 } = req.body;
+  if (!packageId) return res.status(400).json({ message: 'packageId is required' });
+  if (cardLast4 && !/^\d{4}$/.test(String(cardLast4))) return res.status(400).json({ message: 'cardLast4 must be exactly 4 digits' });
+  const pkg = db.packages.find((p) => p.id === packageId && p.enabled !== false);
+  if (!pkg) return res.status(404).json({ message: 'Package not found' });
+  const subscription = {
+    id: nextId('sub', 'subscriptions'),
+    driverId: req.user.id,
+    packageId: pkg.id,
+    packageName: pkg.name,
+    amount: pkg.price,
+    currency: 'EGP',
+    method: cardLast4 ? 'demo_online_card' : 'demo',
+    cardLast4: cardLast4 || null,
+    status: 'success',
+    startsAt: new Date().toISOString(),
+    endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    transactionId: `DEMO-TXN-${Date.now()}`,
+    createdAt: new Date().toISOString()
+  };
+  db.subscriptions.push(subscription);
+  db.notifications.unshift({ id: nextId('n', 'notifications'), userId: req.user.id, title: `${pkg.name} subscription activated`, message: `Your ${pkg.name} plan is now active.`, type: 'payment', createdAt: new Date().toISOString() });
+  res.status(201).json({ success: true, data: subscription });
 };
 
 export const chat = (req, res) => {

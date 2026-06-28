@@ -44,6 +44,11 @@ import AdminBookings from './pages/admin/AdminBookings.jsx';
 import AdminCatalog from './pages/admin/AdminCatalog.jsx';
 import AdminLogs from './pages/admin/AdminLogs.jsx';
 import AdminSettings from './pages/admin/AdminSettings.jsx';
+import AdminEmergency from './pages/admin/AdminEmergency.jsx';
+import AdminChats from './pages/admin/AdminChats.jsx';
+import AdminDiagnostics from './pages/admin/AdminDiagnostics.jsx';
+import DriverPrivacyPolicy from './pages/driver/DriverPrivacyPolicy.jsx';
+import DriverAbout from './pages/driver/DriverAbout.jsx';
 
 export default function App() {
   return (
@@ -86,6 +91,8 @@ export default function App() {
         <Route path="chat" element={<DriverChat />} />
         <Route path="notifications" element={<DriverNotifications />} />
         <Route path="profile" element={<DriverProfile />} />
+        <Route path="privacy" element={<DriverPrivacyPolicy />} />
+        <Route path="about" element={<DriverAbout />} />
       </Route>
 
       <Route path="/workshop" element={<DashboardLayout role="workshop" />}>
@@ -113,6 +120,9 @@ export default function App() {
         <Route path="packages" element={<AdminCatalog type="packages" />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="emergency" element={<AdminEmergency />} />
+        <Route path="chats" element={<AdminChats />} />
+        <Route path="diagnostics" element={<AdminDiagnostics />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />

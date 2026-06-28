@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import * as admin from '../controllers/adminController.js';
+import { allDiagnostics, deleteDiagnostic } from '../controllers/adminController.js';
 
 const router = Router();
 router.use(requireAuth(['admin']));
@@ -24,5 +25,15 @@ router.put('/packages/:id', admin.upsertPackage);
 router.delete('/packages/:id', admin.deletePackage);
 router.get('/logs', admin.logs);
 router.get('/settings', admin.settings);
+router.get('/diagnostics', allDiagnostics);
+router.delete('/diagnostics/:id', deleteDiagnostic);
+
+router.get('/emergency', admin.emergency);
+router.patch('/emergency/:id/assign-workshop', admin.assignEmergencyWorkshop);
+
+router.get('/chat/workshops', admin.adminWorkshopChats);
+router.post('/chat/workshops/:workshopId', admin.sendAdminWorkshopMessage);
+router.get('/chat/drivers', admin.adminDriverChats);
+router.post('/chat/drivers/:driverId', admin.sendAdminDriverMessage);
 
 export default router;

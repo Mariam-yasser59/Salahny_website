@@ -91,3 +91,86 @@ export const deletePackage = (req, res) => {
 
 export const logs = (_req, res) => res.json(db.activityLogs);
 export const settings = (req, res) => res.json(db.users.find((user) => user.id === req.user.id));
+
+// ─── Emergency Management ────────────────────────────────────────────────────
+
+export const emergency = (_req, res) => {
+  const requests = db.emergencyRequests.map((item) => ({
+    ...item,
+    driver: findById('users', item.driverId),
+    workshop: item.workshopId ? findById('workshops', item.workshopId) : null
+  }));
+  res.json({ success: true, data: requests });
+};
+
+export const assignEmergencyWorkshop = (req, res) => {
+  const request = db.emergencyRequests.find((item) => item.id === req.params.id);
+  if (!request) return res.status(404).json({ message: 'Emergency request not found' });
+  const workshop = findById('workshops', req.body.workshopId);
+  if (!workshop) return res.status(404).json({ message: 'Workshop not found' });
+  request.workshopId = workshop.id;
+  request.status = 'assigned';
+  request.assignedBy = req.user.id;
+  db.notifications.unshift({ id: nextId('n', 'notifications'), userId: workshop.userId, title: 'Emergency request assigned', message: 'Admin assigned an emergency request to your workshop.', type: 'emergency', createdAt: new Date().toISOString() });
+  db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: 'emergency_assigned', actor: 'Admin', message: `Emergency ${request.id} assigned to ${workshop.name}`, date: new Date().toLocaleString() });
+  res.json({ success: true, data: { ...request, workshop } });
+};
+
+// ─── Admin Chat Monitoring ───────────────────────────────────────────────────
+
+export const adminWorkshopChats = (_req, res) => {
+  const threads = db.workshops.map((workshop) => ({
+    workshopId: workshop.id,
+    workshopName: workshop.name,
+    messages: db.adminWorkshopMessages.filter((m) => m.workshopId === workshop.id)
+  })).filter((thread) => thread.messages.length > 0);
+  res.json({ success: true, data: threads });
+};
+
+export const adminDriverChats = (_req, res) => {
+  const drivers = db.users.filter((user) => user.role === 'driver');
+  const threads = drivers.map((driver) => {
+    const threadKey = [driver.id, 'admin1'].sort().join(':');
+    return {
+      driverId: driver.id,
+      driverName: driver.name,
+      messages: db.directMessages.filter((m) => m.threadKey === threadKey)
+    };
+  }).filter((thread) => thread.messages.length > 0);
+  res.json({ success: true, data: threads });
+};
+
+export const sendAdminWorkshopMessage = (req, res) => {
+  const workshop = findById('workshops', req.params.workshopId);
+  if (!workshop) return res.status(404).json({ message: 'Workshop not found' });
+  const message = { id: nextId('am', 'adminWorkshopMessages'), workshopId: workshop.id, senderRole: 'admin', senderId: req.user.id, text: req.body.text, createdAt: new Date().toISOString(), readByWorkshop: false, readByAdmin: true };
+  db.adminWorkshopMessages.push(message);
+  db.notifications.unshift({ id: nextId('n', 'notifications'), userId: workshop.userId, title: 'Admin message', message: req.body.text, type: 'chat', createdAt: new Date().toISOString() });
+  res.status(201).json({ success: true, data: message });
+};
+
+export const sendAdminDriverMessage = (req, res) => {
+  const driver = findById('users', req.params.driverId);
+  if (!driver || driver.role !== 'driver') return res.status(404).json({ message: 'Driver not found' });
+  const threadKey = [driver.id, 'admin1'].sort().join(':');
+  const message = { id: nextId('dm', 'directMessages'), threadKey, senderRole: 'admin', senderId: req.user.id, senderName: 'Salahny Admin', text: req.body.text, createdAt: new Date().toISOString() };
+  db.directMessages.push(message);
+  db.notifications.unshift({ id: nextId('n', 'notifications'), userId: driver.id, title: 'Admin message', message: req.body.text, type: 'chat', createdAt: new Date().toISOString() });
+  res.status(201).json({ success: true, data: message });
+};
+
+
+export const allDiagnostics = (req, res) => {
+  const diagnostics = db.diagnostics.map((d) => {
+    const driver = db.users.find((u) => u.id === d.driverId);
+    return { ...d, driverName: driver?.name || 'Unknown driver', driverEmail: driver?.email || '' };
+  });
+  res.json(diagnostics);
+};
+
+export const deleteDiagnostic = (req, res) => {
+  const idx = db.diagnostics.findIndex((d) => d.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ message: 'Diagnostic not found' });
+  db.diagnostics.splice(idx, 1);
+  res.json({ success: true });
+};

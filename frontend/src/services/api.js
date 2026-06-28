@@ -70,7 +70,7 @@ const readJsonBody = (body) => {
 };
 
 export const authLogin = async (body) => {
-  const bases = [getApiBaseUrl(), ...ALTERNATE_API_BASE_URLS].filter((value, index, list) => value && list.indexOf(value) === index);
+  const bases = [getApiBaseUrl(), API_BASE_URL, ...ALTERNATE_API_BASE_URLS].filter((value, index, list) => value && list.indexOf(value) === index);
   let lastError = null;
 
   for (const baseUrl of bases) {
@@ -314,14 +314,36 @@ const virtualGet = async (path) => {
     recentActivity: []
   }));
 
-  if (path === '/admin/approvals') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['pending', 'inactive'].includes(item.status));
-  if (path === '/admin/drivers') return normalizeList(await request('/admin/users').catch(() => []), ['users']).filter((item) => ['driver', 'user'].includes(String(item.role).toLowerCase()));
-  if (path === '/admin/workshops') return normalizeList(await request('/admin/workshops').catch(() => []), ['workshops']);
+  if (path === '/admin/approvals') {
+    const all = await request('/admin/drivers').catch(() => []);
+    return normalizeList(all, ['users', 'data']).filter((item) => ['pending', 'inactive'].includes(item.status));
+  }
+  if (path === '/admin/drivers') {
+    const all = await request('/admin/drivers').catch(() => []);
+    return normalizeList(all, ['users', 'data']);
+  }
+  if (path === '/admin/workshops') {
+    const all = await request('/admin/workshops').catch(() => []);
+    return normalizeList(all, ['workshops', 'data']);
+  }
   if (path === '/admin/bookings') return normalizeList(await request('/admin/bookings').catch(() => []), ['bookings']).map(adaptBooking);
   if (path === '/admin/services') return normalizeList(await request('/services').catch(() => []), ['services']);
   if (path === '/admin/packages') return normalizeList(await request('/packages').catch(() => []), ['packages']);
   if (path === '/admin/logs') return [];
   if (path === '/admin/settings') return request('/users/me').then((data) => data.user || data);
+
+  if (path === '/admin/diagnostics') return request('/admin/diagnostics').then((data) => normalizeList(data, ['data']));
+  if (path === '/admin/emergency') return request('/admin/emergency').then((data) => normalizeList(data, ['data']));
+  if (path === '/admin/chat/workshops') return request('/admin/chat/workshops').then((data) => data?.data || []);
+  if (path === '/admin/chat/drivers') return request('/admin/chat/drivers').then((data) => data?.data || []);
+
+  if (path === '/driver/emergency') return request('/driver/emergency').then((data) => normalizeList(data, ['data']));
+  if (path === '/driver/direct-messages') return request('/driver/direct-messages').then((data) => normalizeList(data, ['data']));
+
+  if (path.startsWith('/driver/tracking/')) {
+    const bookingId = path.split('/').pop();
+    return request(`/tracking/${bookingId}`).then((data) => data?.data ? { ...data, updates: data.data } : data).catch(() => ({ updates: [], booking: null }));
+  }
 
   return request(path);
 };
@@ -338,7 +360,14 @@ export const api = async (path, options = {}) => {
   if (path === '/driver/bookings') return request('/bookings', options);
   if (path === '/driver/diagnostics') return request('/driver/diagnostics', options);
   if (path === '/driver/profile') return request('/driver/profile', options);
-  if (path.startsWith('/driver/emergency/')) return request(`/${path.split('/').pop()}`, options);
+  if (path === '/driver/emergency') return request('/driver/emergency', options);
+  if (path.match(/^\/driver\/emergency\/[^/]+\/cancel$/)) {
+    const id = path.split('/')[3];
+    return request(`/driver/emergency/${id}/cancel`, options);
+  }
+  if (path.startsWith('/driver/emergency/') && !path.includes('/cancel')) return request(`/${path.split('/').pop()}`, options);
+  if (path === '/driver/direct-messages') return request('/driver/direct-messages', options);
+  if (path === '/driver/packages/checkout') return request('/driver/packages/checkout', options);
 
   if (path === '/vehicles') return request('/vehicles', options);
   if (path.startsWith('/vehicles/')) return request(`/vehicles/${path.split('/').pop()}`, options);
@@ -412,6 +441,16 @@ export const api = async (path, options = {}) => {
     return request('/workshop/profile', options);
   }
 
+  if (path === '/chatbot/message') return request('/chatbot/message', options);
+
+  if (path.match(/^\/admin\/emergency\/[^/]+\/assign-workshop$/)) {
+    const id = path.split('/')[3];
+    return request(`/admin/emergency/${id}/assign-workshop`, options);
+  }
+
+  if (path.match(/^\/admin\/chat\/workshops\/[^/]+$/)) return request(path.replace('/admin/', '/admin/'), options);
+  if (path.match(/^\/admin\/chat\/drivers\/[^/]+$/)) return request(path.replace('/admin/', '/admin/'), options);
+
   if (path === '/ratings') {
     const ratingBody = readJsonBody(options.body);
     if (['workshop_by_customer', 'customer_by_workshop'].includes(ratingBody.ratingType)) {
@@ -435,6 +474,8 @@ export const api = async (path, options = {}) => {
 
   return request(path, options);
 };
+
+export const get = (path) => api(path);
 
 export const post = (path, body) =>
   api(path, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) });

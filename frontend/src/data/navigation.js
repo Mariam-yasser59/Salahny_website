@@ -1,4 +1,4 @@
-import { Activity, BadgeCheck, BarChart3, Bell, Bot, BriefcaseBusiness, CalendarClock, Car, ClipboardCheck, Clock3, FileCheck2, History, LayoutDashboard, LifeBuoy, ListChecks, MapPinned, MessageCircle, Package, Settings, ShieldCheck, Store, Users, Wrench } from 'lucide-react';
+import { Activity, AlertTriangle, BadgeCheck, BarChart3, Bell, Bot, BriefcaseBusiness, CalendarClock, Car, ClipboardCheck, Clock3, FileCheck2, History, Info, LayoutDashboard, LifeBuoy, ListChecks, Lock, MapPinned, MessageCircle, Package, Settings, ShieldCheck, Store, Users, Wrench } from 'lucide-react';
 
 export const nav = {
   driver: [
@@ -14,7 +14,9 @@ export const nav = {
     { to: '/driver/packages', label: 'Packages', icon: Package },
     { to: '/driver/chat', label: 'AI Chat', icon: MessageCircle },
     { to: '/driver/notifications', label: 'Notifications', icon: Bell },
-    { to: '/driver/profile', label: 'Settings', icon: Settings }
+    { to: '/driver/profile', label: 'Settings', icon: Settings },
+    { to: '/driver/about', label: 'About', icon: Info },
+    { to: '/driver/privacy', label: 'Privacy Policy', icon: Lock }
   ],
   workshop: [
     { to: '/workshop', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,6 +39,9 @@ export const nav = {
     { to: '/admin/bookings', label: 'Bookings', icon: ListChecks },
     { to: '/admin/services', label: 'Services', icon: Wrench },
     { to: '/admin/packages', label: 'Packages', icon: Package },
+    { to: '/admin/emergency', label: 'Emergency', icon: AlertTriangle },
+    { to: '/admin/chats', label: 'Chat Monitor', icon: MessageCircle },
+    { to: '/admin/diagnostics', label: 'Diagnostics', icon: Bot },
     { to: '/admin/logs', label: 'Activity Logs', icon: Activity },
     { to: '/admin/settings', label: 'Settings', icon: ShieldCheck }
   ]
