@@ -370,12 +370,46 @@ export const sendChatMessage = async (req, res) => {
   res.status(201).json({ success: true, data: message });
 };
 
+const buildPrediction = (vitals, issue, healthScore) => {
+  const coolant = Number(vitals.coolantTemp || vitals.COOLANT_TEMPERATURE || 90);
+  const engineLoad = Number(vitals.engineLoad || vitals.ENGINE_LOAD || 25);
+  const battery = Number(vitals.battery || vitals.CONTROL_MODULE_VOLTAGE || 12.6);
+  if (healthScore < 65) {
+    return {
+      predictedIssue: `${issue} may cause service interruption if the vehicle keeps operating`,
+      predictionHorizon: 'Immediate to 7 days',
+      predictionReason: `Health score ${healthScore}% with coolant ${coolant} C and engine load ${engineLoad}% indicates high near-term repair risk.`
+    };
+  }
+  if (coolant >= 98 || engineLoad >= 70) {
+    return {
+      predictedIssue: 'Cooling system stress may develop into overheating',
+      predictionHorizon: '7 to 14 days',
+      predictionReason: `Coolant temperature ${coolant} C and engine load ${engineLoad}% show thermal stress under repeated trips.`
+    };
+  }
+  if (battery > 0 && battery < 12.6) {
+    return {
+      predictedIssue: 'Battery or charging-system weakness may appear',
+      predictionHorizon: '1 to 3 weeks',
+      predictionReason: `Battery voltage ${battery} V is below the normal running range.`
+    };
+  }
+  return {
+    predictedIssue: 'No near-term failure predicted',
+    predictionHorizon: '30 to 60 days',
+    predictionReason: 'Submitted readings are within a normal service range; continue regular maintenance.'
+  };
+};
+
 export const runDiagnostic = (req, res) => {
   const booking = db.bookings.find((item) => item.id === req.params.bookingId);
   if (!booking) return res.status(404).json({ message: 'Booking not found' });
   const vitals = req.body.vitals || req.body;
   const healthScore = Math.max(35, Math.min(98, 100 - Math.round((Number(vitals.engineLoad || 25) + Math.max(0, Number(vitals.coolantTemp || 90) - 90)) / 2)));
-  const diagnostic = { id: nextId('d', 'diagnostics'), bookingId: booking.id, driverId: booking.driverId, vehicleId: booking.vehicleId, date: new Date().toISOString(), healthScore, confidence: 84, urgency: healthScore < 65 ? 'high' : 'medium', issue: healthScore < 65 ? 'Engine load or temperature anomaly' : 'Preventive service recommended', technicalNote: 'Rule-based fallback diagnostic generated from workshop OBD values.', recommendedFix: healthScore < 65 ? 'Inspect cooling system and load-related sensors.' : 'Continue service workflow and confirm vitals after repair.', faultCodes: healthScore < 65 ? ['P0117', 'P0101'] : [], vitals };
+  const issue = healthScore < 65 ? 'Engine load or temperature anomaly' : 'Preventive service recommended';
+  const prediction = buildPrediction(vitals, issue, healthScore);
+  const diagnostic = { id: nextId('d', 'diagnostics'), bookingId: booking.id, driverId: booking.driverId, vehicleId: booking.vehicleId, date: new Date().toISOString(), healthScore, confidence: 84, urgency: healthScore < 65 ? 'high' : 'medium', issue, detectedIssue: issue, ...prediction, technicalNote: 'Predictive diagnostic generated from workshop OBD values.', recommendedFix: healthScore < 65 ? 'Inspect cooling system and load-related sensors.' : 'Continue service workflow and confirm vitals after repair.', faultCodes: healthScore < 65 ? ['P0117', 'P0101'] : [], vitals };
   db.diagnostics.unshift(diagnostic);
   addNotification(booking.driverId, 'Diagnostic report ready', 'The workshop completed a diagnostic report for your booking.', 'diagnostic');
   notifyDiagnosticReady(jobView(booking), diagnostic);
@@ -386,9 +420,26 @@ export const uploadObd = runDiagnostic;
 export const shareDiagnostic = (req, res) => {
   const diagnostic = db.diagnostics.find((item) => item.id === req.body.diagnosticId || item.bookingId === req.params.bookingId);
   if (!diagnostic) return res.status(404).json({ message: 'Diagnostic not found' });
-  const message = { id: nextId('bm', 'bookingMessages'), bookingId: req.params.bookingId, senderRole: 'workshop', senderId: req.user.id, text: `Diagnostic report: ${diagnostic.issue}. Health score ${diagnostic.healthScore}%. ${diagnostic.recommendedFix}`, createdAt: new Date().toISOString() };
+  const booking = db.bookings.find((item) => item.id === req.params.bookingId);
+  const text = `Diagnostic report: ${diagnostic.detectedIssue || diagnostic.issue}. Prediction: ${diagnostic.predictedIssue} within ${diagnostic.predictionHorizon}. Health score ${diagnostic.healthScore}%. ${diagnostic.recommendedFix}`;
+  const message = { id: nextId('bm', 'bookingMessages'), bookingId: req.params.bookingId, senderRole: 'workshop', senderId: req.user.id, text, createdAt: new Date().toISOString() };
   db.bookingMessages.push(message);
+  if (booking) {
+    addNotification(booking.driverId, 'Diagnostic report shared', text, 'diagnostic');
+    notifyDiagnosticReady(jobView(booking), diagnostic);
+  }
   res.status(201).json({ success: true, data: message });
+};
+
+export const createRepairTask = (req, res) => {
+  const booking = db.bookings.find((item) => item.id === req.params.bookingId);
+  if (!booking) return res.status(404).json({ message: 'Booking not found' });
+  if (!hasDiagnostic(booking.id)) return res.status(409).json({ message: 'Run diagnostics before creating a repair task' });
+  booking.status = 'repair_in_progress';
+  booking.timeline = [...new Set([...(booking.timeline || []), 'Repair in progress'])];
+  addNotification(booking.driverId, 'Repair task started', 'The workshop created a repair task from your diagnostic report.', 'booking');
+  notifyBookingStatus(jobView(booking), 'repair_in_progress');
+  res.status(200).json({ success: true, data: portalBooking(booking) });
 };
 
 export const notifications = (req, res) => res.json({ success: true, data: db.notifications.filter((item) => item.userId === req.user.id) });

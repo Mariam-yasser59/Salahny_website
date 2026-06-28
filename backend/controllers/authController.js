@@ -1,6 +1,21 @@
+import crypto from 'crypto';
 import { db, nextId } from '../data/mockData.js';
 import { signToken } from '../middleware/auth.js';
 import { notifyWorkshopRegistration, sendEmailNotification } from '../services/emailNotifications.js';
+
+const hashToken = (value) => crypto.createHash('sha256').update(String(value)).digest('hex');
+const hashPassword = (password) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(password), salt, 64).toString('hex');
+  return `scrypt:${salt}:${hash}`;
+};
+const verifyPassword = (password, stored) => {
+  if (!stored) return false;
+  if (!String(stored).startsWith('scrypt:')) return stored === password;
+  const [, salt, expected] = String(stored).split(':');
+  const actual = crypto.scryptSync(String(password), salt, 64).toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(actual, 'hex'), Buffer.from(expected, 'hex'));
+};
 
 const publicUser = (user) => {
   const { password, ...safeUser } = user;
@@ -9,7 +24,7 @@ const publicUser = (user) => {
 
 const loginWithRole = (role) => (req, res) => {
   const { email, password } = req.body;
-  const user = db.users.find((item) => item.email === email && item.password === password && item.role === role);
+  const user = db.users.find((item) => item.email === email && item.role === role && verifyPassword(password, item.password));
 
   if (!user) return res.status(401).json({ message: 'Invalid credentials' });
   res.json({ token: signToken(user), user: publicUser(user) });
@@ -17,7 +32,7 @@ const loginWithRole = (role) => (req, res) => {
 
 export const login = (req, res) => {
   const { email, password, role } = req.body;
-  const user = db.users.find((item) => item.email === email && item.password === password && (!role || item.role === role));
+  const user = db.users.find((item) => item.email === email && (!role || item.role === role) && verifyPassword(password, item.password));
 
   if (!user) return res.status(401).json({ message: 'Invalid credentials' });
   res.json({ token: signToken(user), user: publicUser(user) });
@@ -41,23 +56,25 @@ export const googleLogin = (req, res) => {
 export const forgotPassword = (req, res) => {
   const user = db.users.find((item) => item.email === req.body.email);
   if (user) {
-    user.resetToken = nextId('reset', 'users');
+    const resetToken = crypto.randomBytes(24).toString('hex');
+    user.resetTokenHash = hashToken(resetToken);
     user.resetTokenExpiresAt = Date.now() + 1000 * 60 * 30;
     sendEmailNotification({
       to: user.email,
       subject: 'Reset your Salahny password',
-      text: `Use this reset token to update your password: ${user.resetToken}`,
-      html: `<p>Use this reset token to update your Salahny password:</p><p><strong>${user.resetToken}</strong></p>`
+      text: `Use this reset token to update your password: ${resetToken}`,
+      html: `<p>Use this reset token to update your Salahny password:</p><p><strong>${resetToken}</strong></p>`
     }).catch((error) => console.warn(error.message));
   }
   res.json({ message: 'If the email exists, password reset instructions were sent.' });
 };
 
 export const resetPassword = (req, res) => {
-  const user = db.users.find((item) => item.resetToken === req.body.token && item.resetTokenExpiresAt > Date.now());
+  const tokenHash = hashToken(req.body.token || '');
+  const user = db.users.find((item) => item.email === req.body.email && item.resetTokenHash === tokenHash && item.resetTokenExpiresAt > Date.now());
   if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
-  user.password = req.body.password;
-  delete user.resetToken;
+  user.password = hashPassword(req.body.password);
+  delete user.resetTokenHash;
   delete user.resetTokenExpiresAt;
   res.json({ message: 'Password updated successfully' });
 };

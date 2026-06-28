@@ -1,20 +1,26 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import SectionHeader from '../../components/SectionHeader.jsx';
-import { post } from '../../services/api.js';
+import { patch, post } from '../../services/api.js';
 
 export default function WorkshopDiagnostics() {
   const { state } = useLocation();
+  const navigate = useNavigate();
   const [bookingId, setBookingId] = useState(state?.bookingId || '');
   const [vitals, setVitals] = useState({ rpm: '', coolantTemp: '', speed: '', map: '', maf: '', o2Voltage: '', faultCodes: '', battery: '', engineLoad: '' });
   const [report, setReport] = useState(null);
   const [obdFile, setObdFile] = useState(null);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   const run = async () => {
     setScanning(true);
     setError('');
+    setMessage('');
     try {
       setReport(await post(`/workshop/diagnostics/${bookingId}/run`, { vitals: normalizeVitals(vitals) }));
     } catch (err) {
@@ -26,6 +32,7 @@ export default function WorkshopDiagnostics() {
   const upload = async () => {
     if (!obdFile) return;
     setError('');
+    setMessage('');
     setScanning(true);
     const text = await obdFile.text();
     let parsed = {};
@@ -43,7 +50,49 @@ export default function WorkshopDiagnostics() {
       setScanning(false);
     }
   };
-  const share = async () => post(`/workshop/diagnostics/${bookingId}/share`, { diagnosticId: report?.id || report?._id });
+  const share = async () => {
+    setSharing(true);
+    setError('');
+    setMessage('');
+    try {
+      await post(`/workshop/diagnostics/${bookingId}/share`, { diagnosticId: report?.id || report?._id });
+      setMessage('Report sent to the driver and notification created.');
+    } catch (err) {
+      setError(err.message || 'Could not send report to driver.');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const createRepairTask = async () => {
+    setCreating(true);
+    setError('');
+    setMessage('');
+    try {
+      await post(`/workshop/diagnostics/${bookingId}/create-repair-task`, { diagnosticId: report?.id || report?._id });
+      setMessage('Repair task created.');
+      navigate('/workshop/requests', { state: { bookingId, status: 'repair_in_progress' } });
+    } catch (err) {
+      setError(err.message || 'Could not create repair task.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const completeJob = async () => {
+    setCompleting(true);
+    setError('');
+    setMessage('');
+    try {
+      await patch(`/workshop/bookings/${bookingId}/status`, { status: 'completed' });
+      setMessage('Job completed.');
+      navigate('/workshop/requests', { state: { bookingId, status: 'completed' } });
+    } catch (err) {
+      setError(err.message || 'Could not complete this job.');
+    } finally {
+      setCompleting(false);
+    }
+  };
 
   return (
     <div className="dash-stack">
@@ -80,11 +129,14 @@ export default function WorkshopDiagnostics() {
       </section>
       {scanning && <section className="diagnostic-card scanner-card"><span>Scanning OBD values</span><strong>AI</strong><p>Analyzing vitals, fault codes, urgency, and recommended repair path...</p><div className="splash-loader"><span /></div></section>}
       {error && <p className="error">{error}</p>}
+      {message && <p className="success-card">{message}</p>}
       {report && (
         <section className="diagnostic-card">
           <span>AI diagnostic report</span>
           <strong>{report.healthScore || report.score || 0}%</strong>
-          <h3>{report.issue || report.possibleFault || 'Diagnostic issue'}</h3>
+          <h3>Detection: {report.detectedIssue || report.issue || report.possibleFault || 'Diagnostic issue'}</h3>
+          <p><strong>Prediction:</strong> {report.predictedIssue || 'No near-term failure predicted'} {report.predictionHorizon ? `within ${report.predictionHorizon}` : ''}</p>
+          {report.predictionReason && <p>{report.predictionReason}</p>}
           <p>Confidence: {report.confidence || report.probability || 0}% - Urgency: {report.urgency || urgencyFromScore(report.healthScore)}</p>
           <p>Repair category: {report.repairCategory || report.category || 'Diagnostics and repair'}</p>
           <p>{report.technicalNote || report.recommendation || report.recommendedFix}</p>
@@ -97,9 +149,9 @@ export default function WorkshopDiagnostics() {
           </div>
           <p>Linked request ID: {bookingId}</p>
           <div className="actions">
-            <button className="ghost-btn">Create Repair Task</button>
-            <button className="primary-btn" onClick={share}>Send Report to Driver</button>
-            <button className="ghost-btn" onClick={() => setReport(null)}>Done</button>
+            <button className="ghost-btn" disabled={creating || sharing || completing} onClick={createRepairTask}>{creating ? 'Creating...' : 'Create Repair Task'}</button>
+            <button className="primary-btn" disabled={creating || sharing || completing} onClick={share}>{sharing ? 'Sending...' : 'Send Report to Driver'}</button>
+            <button className="ghost-btn" disabled={creating || sharing || completing} onClick={completeJob}>{completing ? 'Completing...' : 'Done'}</button>
           </div>
         </section>
       )}

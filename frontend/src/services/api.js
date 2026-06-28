@@ -339,6 +339,11 @@ export const api = async (path, options = {}) => {
     return request(`/chat/bookings/${id}/share-diagnostic`, options).then(payload);
   }
 
+  if (path.startsWith('/workshop/diagnostics/') && path.endsWith('/create-repair-task')) {
+    const id = path.split('/')[3];
+    return request(`/diagnostics/workshop/${id}/create-repair-task`, options).then(payload);
+  }
+
   if (path.startsWith('/workshop/chat/') && path.endsWith('/messages')) {
     const id = path.split('/')[3];
     return request(`/chat/bookings/${id}/messages`, options).then(payload);

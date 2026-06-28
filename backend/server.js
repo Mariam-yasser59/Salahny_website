@@ -147,6 +147,13 @@ app.post('/api/ratings', requireAuth(), (req, res) => {
       workshop.rating = Math.round((workshopRatings.reduce((sum, item) => sum + item.stars, 0) / workshopRatings.length) * 10) / 10;
       workshop.reviews = workshopRatings.length;
     }
+  } else if (ratingType === 'customer_by_workshop') {
+    const driver = db.users.find((item) => item.id === booking.driverId);
+    const driverRatings = db.ratings.filter((item) => item.customerId === booking.driverId && item.ratingType === 'customer_by_workshop');
+    if (driver && driverRatings.length) {
+      driver.rating = Math.round((driverRatings.reduce((sum, item) => sum + item.stars, 0) / driverRatings.length) * 10) / 10;
+      driver.reviewCount = driverRatings.length;
+    }
   }
 
   res.status(201).json({ success: true, data: rating });

@@ -20,6 +20,7 @@ export const diagnosticRoutes = Router();
 diagnosticRoutes.use(requireAuth(['workshop']));
 diagnosticRoutes.post('/workshop/:bookingId/run', workshop.runDiagnostic);
 diagnosticRoutes.post('/workshop/:bookingId/upload-obd', workshop.uploadObd);
+diagnosticRoutes.post('/workshop/:bookingId/create-repair-task', workshop.createRepairTask);
 
 export const trackingRoutes = Router();
 trackingRoutes.use(requireAuth(['workshop']));
