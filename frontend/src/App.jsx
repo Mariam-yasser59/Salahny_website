@@ -5,6 +5,7 @@ import Splash from './pages/public/Splash.jsx';
 import RoleSelection from './pages/public/RoleSelection.jsx';
 import Home from './pages/public/Home.jsx';
 import About from './pages/public/About.jsx';
+import Features from './pages/public/Features.jsx';
 import Services from './pages/public/Services.jsx';
 import Packages from './pages/public/Packages.jsx';
 import Contact from './pages/public/Contact.jsx';
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/roles" element={<RoleSelection />} />
         <Route path="/about" element={<About />} />
+        <Route path="/features" element={<Features />} />
         <Route path="/services" element={<Services />} />
         <Route path="/packages" element={<Packages />} />
         <Route path="/contact" element={<Contact />} />

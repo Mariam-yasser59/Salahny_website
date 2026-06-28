@@ -4,6 +4,7 @@ import Logo from '../components/Logo.jsx';
 const links = [
   ['/', 'Home'],
   ['/about', 'About'],
+  ['/features', 'Features'],
   ['/services', 'Services'],
   ['/packages', 'Packages'],
   ['/contact', 'Contact']

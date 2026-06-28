@@ -21,7 +21,8 @@ export default function AuthPage({ mode }) {
     workshopAddress: '',
     documentType: 'commercial_registration',
     verificationDocumentName: '',
-    verificationFile: null
+    verificationFile: null,
+    driverLicense: null
   });
   const [error, setError] = useState('');
 
@@ -29,22 +30,30 @@ export default function AuthPage({ mode }) {
     event.preventDefault();
     try {
       let payload = form;
-      if (mode === 'register' && currentRole === 'workshop') {
+      if (mode === 'register' && ['workshop', 'driver'].includes(currentRole)) {
         payload = new FormData();
-        Object.entries({
+        const baseFields = {
           ownerName: form.ownerName || form.name,
-          name: form.workshopName || form.ownerName || form.name,
+          name: currentRole === 'workshop' ? (form.workshopName || form.ownerName || form.name) : form.name,
           email: form.email,
           password: form.password,
           phone: form.phone,
           city: form.city,
-          workshopName: form.workshopName || form.ownerName || form.name,
-          workshopAddress: form.workshopAddress || form.address,
-          address: form.workshopAddress || form.address,
-          documentType: form.documentType,
-          role: 'workshop'
-        }).forEach(([key, value]) => payload.append(key, value));
-        if (form.verificationFile) payload.append('verificationDocument', form.verificationFile);
+          role: currentRole
+        };
+        const roleFields = currentRole === 'workshop'
+          ? {
+              workshopName: form.workshopName || form.ownerName || form.name,
+              workshopAddress: form.workshopAddress || form.address,
+              address: form.workshopAddress || form.address,
+              documentType: 'commercial_registration'
+            }
+          : {
+              documentType: 'driver_license'
+            };
+        Object.entries({ ...baseFields, ...roleFields }).forEach(([key, value]) => payload.append(key, value || ''));
+        if (currentRole === 'workshop' && form.verificationFile) payload.append('verificationDocument', form.verificationFile);
+        if (currentRole === 'driver' && form.driverLicense) payload.append('driverLicense', form.driverLicense);
       }
       const user = mode === 'login' ? await login({ ...form, role: currentRole }) : await register(currentRole, payload);
       navigate(user.role === 'workshop' && user.status === 'pending' ? '/login/workshop' : `/${user.role}`);
@@ -73,13 +82,15 @@ export default function AuthPage({ mode }) {
             {currentRole === 'workshop' && (
               <>
                 <input required placeholder="Workshop address" value={form.workshopAddress} onChange={(e) => setForm({ ...form, workshopAddress: e.target.value })} />
-                <select value={form.documentType} onChange={(e) => setForm({ ...form, documentType: e.target.value })}>
-                  <option value="commercial_registration">Commercial registration</option>
-                  <option value="tax_card">Tax card</option>
-                  <option value="business_license">Business license</option>
-                </select>
+                <input readOnly value="Commercial registration" />
                 <input required type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setForm({ ...form, verificationFile: e.target.files?.[0] || null, verificationDocumentName: e.target.files?.[0]?.name || '' })} />
-                <p className="form-note">PDF, JPG, and PNG documents are submitted for CV/OCR checks, then admin approval activates the account.</p>
+                <p className="form-note">Commercial register PDF, JPG, or PNG documents are submitted for CV/OCR checks, then admin approval activates the account.</p>
+              </>
+            )}
+            {currentRole === 'driver' && (
+              <>
+                <input required type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setForm({ ...form, driverLicense: e.target.files?.[0] || null })} />
+                <p className="form-note">Upload a driving license document for verification before admin approval.</p>
               </>
             )}
           </>

@@ -284,17 +284,7 @@ export const api = async (path, options = {}) => {
   if (!options.method || options.method === 'GET') return virtualGet(path);
 
   if (path === '/auth/register') {
-    if (!(options.body instanceof FormData)) {
-      const body = JSON.parse(options.body || '{}');
-      return request(`/auth/register/${body.role || 'driver'}`, options);
-    }
-
-    return request('/auth/register/workshop', options).catch(() => {
-      const json = Object.fromEntries(options.body.entries());
-      json.verificationDocumentName = json.verificationDocument?.name;
-      delete json.verificationDocument;
-      return request('/auth/register/workshop', { ...options, body: JSON.stringify(json) });
-    });
+    return request('/auth/register', options);
   }
 
   if (path === '/driver/vehicles') return request('/vehicles', options);
@@ -390,15 +380,5 @@ export const del = (path) =>
 
 export const uploadDocument = async (body) => {
   if (!(body instanceof FormData)) return request('/documents', { method: 'POST', body: JSON.stringify(body) });
-
-  const file = body.get('file') || body.get('verificationDocument');
-
-  const metadata = {
-    kind: body.get('kind') || body.get('documentType') || 'commercial_registration',
-    fileName: file?.name || body.get('fileName') || 'verification-document',
-    mimeType: file?.type || 'application/octet-stream',
-    size: file?.size || 0
-  };
-
-  return request('/documents', { method: 'POST', body: JSON.stringify(metadata) }).then(payload);
+  return request('/documents', { method: 'POST', body }).then(payload);
 };

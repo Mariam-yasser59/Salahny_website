@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import SectionHeader from '../../components/SectionHeader.jsx';
 import { useApi } from '../../hooks/useApi.js';
 import { post } from '../../services/api.js';
 
 export default function DriverBooking() {
+  const location = useLocation();
   const { data: vehicles } = useApi('/vehicles', []);
   const { data: services } = useApi('/services', []);
   const { data: workshops } = useApi('/workshops', []);
@@ -33,6 +35,15 @@ export default function DriverBooking() {
 
   const [created, setCreated] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const selectedWorkshopId = location.state?.workshopId;
+    if (selectedWorkshopId) {
+      setForm((old) => ({ ...old, workshopId: selectedWorkshopId, slotIndex: '' }));
+    }
+  }, [location.state?.workshopId]);
 
   const selectedWorkshop = workshopsList.find(
     (item) => String(item._id || item.id) === String(form.workshopId)
@@ -109,6 +120,9 @@ export default function DriverBooking() {
 
   const submit = async (event) => {
     event.preventDefault();
+    setSubmitting(true);
+    setError('');
+    setCreated(null);
 
     const payload = {
       workshop: form.workshopId,
@@ -127,8 +141,14 @@ export default function DriverBooking() {
       total: selectedService?.price || 0
     };
 
-    const response = await post('/bookings', payload);
-    setCreated(response?.data || response);
+    try {
+      const response = await post('/bookings', payload);
+      setCreated(response?.data || response);
+    } catch (err) {
+      setError(err.message || 'Could not create booking. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -215,12 +235,16 @@ export default function DriverBooking() {
           onChange={(e) => setForm({ ...form, issue: e.target.value })}
         />
 
-        <button className="primary-btn">Confirm booking</button>
+        <button className="primary-btn" disabled={submitting}>
+          {submitting ? 'Creating booking...' : 'Confirm booking'}
+        </button>
       </form>
+
+      {error && <article className="state-card error-state"><strong>Booking failed</strong><p>{error}</p></article>}
 
       {created && (
         <article className="success-card">
-          Booking confirmed successfully.
+          Booking confirmed successfully. The selected workshop can now see this request in its dashboard.
         </article>
       )}
     </div>

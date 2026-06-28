@@ -117,8 +117,6 @@ export default function WorkshopProfile() {
         <section className="form-grid">
           <select value={documentForm.kind} onChange={(e) => setDocumentForm({ ...documentForm, kind: e.target.value })}>
             <option value="commercial_registration">Commercial registration</option>
-            <option value="tax_card">Tax card</option>
-            <option value="business_license">Business license</option>
           </select>
           <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setDocumentForm({ ...documentForm, file: e.target.files?.[0] || null })} />
           <button className="primary-btn" disabled={!documentForm.file} onClick={submitDocument}>Upload verification document</button>

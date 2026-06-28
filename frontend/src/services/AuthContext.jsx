@@ -74,17 +74,18 @@ export const AuthProvider = ({ children }) => {
     let documentType = 'commercial_registration';
     let registerPayload = payload;
     if (payload instanceof FormData) {
-      documentFile = payload.get('verificationDocument');
-      documentType = payload.get('documentType') || documentType;
+      documentFile = payload.get('verificationDocument') || payload.get('driverLicense');
+      documentType = payload.get('documentType') || (requestedRole === 'driver' ? 'driver_license' : documentType);
       registerPayload = Object.fromEntries(payload.entries());
       delete registerPayload.verificationDocument;
+      delete registerPayload.driverLicense;
     }
     const data = await post('/auth/register', { ...registerPayload, role: requestedRole });
     const auth = normalizeAuth(data, requestedRole);
 
     writeAuth(auth.token, auth.user);
 
-    if (requestedRole === 'workshop' && typeof File !== 'undefined' && documentFile instanceof File) {
+    if (['driver', 'workshop'].includes(requestedRole) && typeof File !== 'undefined' && documentFile instanceof File) {
       const documentPayload = new FormData();
       documentPayload.append('kind', documentType);
       documentPayload.append('file', documentFile);

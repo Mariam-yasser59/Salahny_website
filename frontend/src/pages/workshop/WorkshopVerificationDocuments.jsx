@@ -27,18 +27,15 @@ export default function WorkshopVerificationDocuments() {
       <section className="panel">
         <div className="profile-strip">
           <div>
-            <span className="eyebrow">Permit or business documents</span>
+            <span className="eyebrow">Commercial register</span>
             <h2>Submit documents for CV/OCR and admin approval</h2>
-            <p>Commercial registration, tax card, or business license documents can be uploaded as PDF, JPG, or PNG.</p>
+            <p>Workshop verification requires a commercial register document uploaded as PDF, JPG, or PNG.</p>
           </div>
           <button className="ghost-btn" onClick={refresh}>Refresh</button>
         </div>
         <div className="form-grid">
           <select value={form.kind} onChange={(event) => setForm({ ...form, kind: event.target.value })}>
             <option value="commercial_registration">Commercial registration</option>
-            <option value="tax_card">Tax card</option>
-            <option value="business_license">Business license</option>
-            <option value="workshop_permit">Workshop permit</option>
           </select>
           <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => setForm({ ...form, file: event.target.files?.[0] || null })} />
           <button className="primary-btn" disabled={!form.file} onClick={upload}>Upload document</button>

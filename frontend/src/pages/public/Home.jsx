@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { BadgeCheck, BarChart3, Bot, CalendarCheck, LifeBuoy, MessageCircle, Store, Wrench } from 'lucide-react';
+import { BadgeCheck, BarChart3, Bot, CalendarCheck, LifeBuoy, MessageCircle, ShieldCheck, Store, Wrench } from 'lucide-react';
 import SectionHeader from '../../components/SectionHeader.jsx';
+import LiveIntegrationStatus from '../../components/LiveIntegrationStatus.jsx';
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
           <p>Book trusted workshops, manage live service jobs, run AI diagnostics, request emergency support, and keep every driver, workshop, and admin workflow connected through one premium automotive platform.</p>
           <div className="hero-actions">
             <Link className="primary-btn" to="/roles">Choose your role</Link>
+            <Link className="ghost-btn light" to="/features">View all features</Link>
             <Link className="ghost-btn light" to="/services">Explore services</Link>
           </div>
         </div>
@@ -28,8 +30,13 @@ export default function Home() {
         </div>
       </section>
 
+      <LiveIntegrationStatus />
+
       <section className="content-band">
-        <SectionHeader eyebrow="Operations" title="Everything an approved workshop needs" />
+        <SectionHeader eyebrow="Operations" title="Everything an approved workshop needs">
+          Driver bookings, workshop status updates, admin review, notifications, AI reports, ratings,
+          and earnings all run through the production backend instead of disconnected screens.
+        </SectionHeader>
         <div className="feature-grid three">
           {[
             ['Requests and jobs', 'Accept, decline, start service, run diagnostics, start repair, complete jobs, and notify customers.', BadgeCheck],
@@ -37,7 +44,8 @@ export default function Home() {
             ['Availability', 'Create and save future slots that are removed as bookings consume them.', CalendarCheck],
             ['Diagnostics', 'Run manual OBD checks or upload CSV/JSON readings, then share reports to booking chat.', Bot],
             ['Emergency', 'Handle assigned roadside requests from acceptance through completion.', LifeBuoy],
-            ['Messages and earnings', 'Chat with customers/admins and monitor completed-job earnings.', MessageCircle]
+            ['Messages and earnings', 'Chat with customers/admins and monitor completed-job earnings.', MessageCircle],
+            ['Approval and security', 'Keep driver/workshop access gated until admin approval, with secure reset emails handled through Resend.', ShieldCheck]
           ].map(([title, text, Icon]) => <article className="feature-card" key={title}><Icon /><h3>{title}</h3><p>{text}</p></article>)}
         </div>
       </section>
