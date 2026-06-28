@@ -1,4 +1,4 @@
-import { API_BASE_URL, STORAGE_KEYS } from '../config/api.js';
+import { ALTERNATE_API_BASE_URLS, API_BASE_URL, STORAGE_KEYS } from '../config/api.js';
 
 const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
@@ -11,23 +11,39 @@ const clearAuth = () => {
   if (!canUseStorage()) return;
   window.localStorage.removeItem(STORAGE_KEYS.token);
   window.localStorage.removeItem(STORAGE_KEYS.user);
+  window.localStorage.removeItem(STORAGE_KEYS.apiBaseUrl);
 };
 
-const request = async (path, options = {}) => {
+const getApiBaseUrl = () => {
+  if (!canUseStorage()) return API_BASE_URL;
+  return window.localStorage.getItem(STORAGE_KEYS.apiBaseUrl) || API_BASE_URL;
+};
+
+const setApiBaseUrl = (baseUrl) => {
+  if (!canUseStorage() || !baseUrl) return;
+  window.localStorage.setItem(STORAGE_KEYS.apiBaseUrl, baseUrl);
+};
+
+const request = async (path, options = {}, baseUrl = getApiBaseUrl()) => {
   const headers = options.body instanceof FormData
     ? { ...(token() ? { Authorization: `Bearer ${token()}` } : {}), ...options.headers }
     : { 'Content-Type': 'application/json', ...(token() ? { Authorization: `Bearer ${token()}` } : {}), ...options.headers };
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const { skipAuthRedirect, ...fetchOptions } = options;
+  const response = await fetch(`${baseUrl}${path}`, { ...fetchOptions, headers });
   const data = await response.json().catch(() => ({}));
 
-  if (response.status === 401) {
+  if (response.status === 401 && !skipAuthRedirect) {
     clearAuth();
     if (typeof window !== 'undefined') window.location.href = '/login';
     throw new Error(data.message || 'Session expired. Please login again.');
   }
 
-  if (!response.ok) throw new Error(data.message || 'Request failed');
+  if (!response.ok) {
+    const error = new Error(data.message || 'Request failed');
+    error.statusCode = response.status;
+    throw error;
+  }
   return data;
 };
 
@@ -43,6 +59,36 @@ const normalizeList = (data, keys = []) => {
 };
 
 const payload = (data) => data?.data ?? data;
+
+const readJsonBody = (body) => {
+  if (!body || body instanceof FormData) return {};
+  try {
+    return JSON.parse(body);
+  } catch (_error) {
+    return {};
+  }
+};
+
+export const authLogin = async (body) => {
+  const bases = [getApiBaseUrl(), ...ALTERNATE_API_BASE_URLS].filter((value, index, list) => value && list.indexOf(value) === index);
+  let lastError = null;
+
+  for (const baseUrl of bases) {
+    try {
+      const data = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        skipAuthRedirect: true,
+      }, baseUrl);
+      setApiBaseUrl(baseUrl);
+      return data;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Login failed');
+};
 
 const adaptBooking = (booking) => ({
   ...booking,
@@ -366,7 +412,26 @@ export const api = async (path, options = {}) => {
     return request('/workshop/profile', options);
   }
 
-  if (path === '/ratings') return request('/ratings', options).then(payload);
+  if (path === '/ratings') {
+    const ratingBody = readJsonBody(options.body);
+    if (['workshop_by_customer', 'customer_by_workshop'].includes(ratingBody.ratingType)) {
+      const reviewPayload = {
+        bookingId: ratingBody.bookingId,
+        rating: ratingBody.stars ?? ratingBody.rating,
+        comment: ratingBody.comment || ''
+      };
+
+      return request('/reviews', {
+        ...options,
+        body: JSON.stringify(reviewPayload)
+      }).then(payload).catch((error) => {
+        if (error.statusCode === 404) return request('/ratings', options).then(payload);
+        throw error;
+      });
+    }
+
+    return request('/ratings', options).then(payload);
+  }
 
   return request(path, options);
 };

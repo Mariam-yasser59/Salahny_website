@@ -30,7 +30,7 @@ export default function DriverHistory() {
   const [ratingMessage, setRatingMessage] = useState('');
   const [ratedBookings, setRatedBookings] = useState({});
   const bookings = toList(data);
-  const completedBookings = bookings.filter((booking) => booking.status === 'completed');
+  const completedBookings = bookings.filter((booking) => String(booking.status).toLowerCase() === 'completed');
 
   return (
     <div className="dash-stack">
@@ -71,7 +71,7 @@ export default function DriverHistory() {
               <RatingCard
                 key={id}
                 booking={booking}
-                rated={ratedBookings[id]}
+                rated={ratedBookings[id] || booking.driverReviewed}
                 onRated={(message) => {
                   setRatedBookings((old) => ({ ...old, [id]: true }));
                   setRatingMessage(message);
@@ -138,10 +138,7 @@ function RatingCard({ booking, rated, onRated, onError }) {
       />
       <div className="actions">
         <button className="primary-btn" type="button" disabled={rated || saving} onClick={() => rate('workshop_by_customer')}>
-          {rated ? 'Rating saved' : saving ? 'Saving...' : 'Rate workshop'}
-        </button>
-        <button className="ghost-btn" type="button" disabled={rated || saving} onClick={() => rate('platform_by_customer')}>
-          Rate Salahny
+          {rated ? 'Rating saved' : saving ? 'Saving...' : 'Rate workshop service'}
         </button>
       </div>
     </article>

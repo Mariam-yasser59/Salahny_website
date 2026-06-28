@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react';
-import { post, uploadDocument } from './api.js';
+import { authLogin, post, uploadDocument } from './api.js';
 import { STORAGE_KEYS } from '../config/api.js';
 
 const AuthContext = createContext(null);
@@ -53,9 +53,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async ({ email, password, role }) => {
     const requestedRole = normalizeRole(role);
-    const data = await post('/auth/login', { email, password, role: requestedRole, expectedRole: requestedRole });
+    const data = await authLogin({ email, password, role: requestedRole, expectedRole: requestedRole });
     const auth = normalizeAuth(data, requestedRole);
 
+    if (!auth.token) throw new Error('Login succeeded but no session token was returned.');
     if (auth.user.role !== requestedRole) throw new Error(`Only ${requestedRole} accounts can access this portal.`);
     const status = String(auth.user.status || auth.user.verificationStatus || '').toLowerCase();
     if (auth.user.role === 'workshop' && blockedWorkshopStatuses.includes(status)) {
