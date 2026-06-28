@@ -168,6 +168,7 @@ const serviceAliases = {
 };
 
 const serviceImageByName = {
+  'oil change': '/images/oil-service.jpg',
   'brake service': '/images/service-brake-system.png',
   'brake inspection': '/images/service-brake-system.png',
   'brake pads replacement': '/images/service-brake-system.png',
@@ -185,7 +186,7 @@ const serviceImageByName = {
   'water pump replacement': '/images/service-engine-repair.png',
   'engine mount replacement': '/images/service-engine-repair.png',
   'fuel pump replacement': '/images/service-engine-repair.png',
-  'electrical diagnostics': '/images/service-electrical-system.png',
+  'electrical diagnostics': '/images/electrical-diagnostics.jpg',
   'battery service': '/images/service-battery-check.png',
   'battery check': '/images/service-battery-check.png',
   'battery replacement': '/images/service-battery-replacement.png',
@@ -222,7 +223,7 @@ const serviceImageByName = {
   'engine fault diagnosis': '/images/ai-diagnostic.jpg',
   'check engine reset': '/images/ai-diagnostic.jpg',
   'emergency roadside assistance': '/images/service-battery-roadside.png',
-  'towing service': '/images/workshop-lift.jpg',
+  'towing service': '/images/lift-inspection.jpg',
   'tow truck داخل المدينة': '/images/workshop-lift.jpg',
   'tow truck خارج المدينة': '/images/workshop-lift.jpg',
   'flat tire assistance': '/images/service-tires-wheels.png',
@@ -302,6 +303,17 @@ const serviceImageKeywords = [
 ];
 
 const serviceImages = [
+  '/images/oil-service.jpg',
+  '/images/ai-diagnostic.jpg',
+  '/images/service-trust.jpg',
+  '/images/garage-bay.jpg',
+  '/images/electrical-diagnostics.jpg',
+  '/images/inspection.jpg',
+  '/images/performance-repair.jpg',
+  '/images/lift-inspection.jpg',
+  '/images/suspension-service.jpg',
+  '/images/workshop-lift.jpg',
+  '/images/about-workshop.jpg',
   '/images/service-engine-repair.png',
   '/images/service-electrical-system.png',
   '/images/service-ac-system.png',
