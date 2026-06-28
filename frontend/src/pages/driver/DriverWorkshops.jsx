@@ -5,6 +5,8 @@ import SectionHeader from '../../components/SectionHeader.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import { useApi } from '../../hooks/useApi.js';
 
+const NEARBY_RADIUS_KM = 25;
+
 const toList = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
@@ -54,25 +56,29 @@ export default function DriverWorkshops() {
       const workshopLocation = getWorkshopLocation(workshop);
       return { ...workshop, workshopLocation, distanceKm: distanceKm(driverLocation, workshopLocation) };
     })
+    .filter((workshop) => driverLocation && workshop.distanceKm != null && workshop.distanceKm <= NEARBY_RADIUS_KM)
     .sort((a, b) => {
-      if (a.distanceKm == null && b.distanceKm == null) return 0;
-      if (a.distanceKm == null) return 1;
-      if (b.distanceKm == null) return -1;
       return a.distanceKm - b.distanceKm;
     }), [data, driverLocation]);
 
-  const nearestWorkshop = workshops.find((item) => item.distanceKm != null) || workshops[0];
-  const bookWorkshop = (workshop) => navigate('/driver/booking', { state: { workshopId: workshop._id || workshop.id, workshopName: workshop.name } });
+  const nearestWorkshop = workshops[0];
+  const bookWorkshop = (workshop) => navigate('/driver/booking', {
+    state: {
+      workshopId: workshop._id || workshop.id,
+      workshopName: workshop.name,
+      driverLocation,
+    },
+  });
 
   return (
     <div className="dash-stack">
-      <SectionHeader title="Nearby Workshops">List and map-style marketplace for verified auto service partners.</SectionHeader>
+      <SectionHeader title="Nearby Workshops">Allow location access to see workshops near your current area.</SectionHeader>
       <div className="map-layout">
         <div className="map-panel">
           <img className="panel-image" src="/images/garage-bay.jpg" alt="Modern automotive workshop bay" />
           <MapPinned size={54} />
           <h3>Cairo service coverage map</h3>
-          {driverLocation ? <p>Your location: {driverLocation.latitude.toFixed(4)}, {driverLocation.longitude.toFixed(4)}</p> : <><p>Location not selected</p><button className="primary-btn" onClick={getMyLocation}>Use My Location</button></>}
+          {driverLocation ? <p>Your location: {driverLocation.latitude.toFixed(4)}, {driverLocation.longitude.toFixed(4)}</p> : <><p>Choose your location first. Nearby workshops will appear after Salahny calculates distance.</p><button className="primary-btn" onClick={getMyLocation}>Use My Location</button></>}
           {driverLocation && nearestWorkshop && (
             <div className="compact-card">
               <Navigation size={20} />
@@ -84,7 +90,19 @@ export default function DriverWorkshops() {
         </div>
 
         <div className="workshop-list">
-          {workshops.map((workshop) => {
+          {!driverLocation && (
+            <article className="state-card">
+              <strong>Location required</strong>
+              <span>Use your current location so Salahny can show nearby workshops only.</span>
+            </article>
+          )}
+          {driverLocation && workshops.length === 0 && (
+            <article className="state-card">
+              <strong>No nearby workshops found</strong>
+              <span>Try again from another location or check back when more workshops are available nearby.</span>
+            </article>
+          )}
+          {driverLocation && workshops.map((workshop) => {
             const id = workshop._id || workshop.id;
             const isOpen = workshop.open ?? workshop.availability === 'open';
             return (

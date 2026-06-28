@@ -4,7 +4,6 @@ import {
   Bot,
   CalendarClock,
   Car,
-  ClipboardCheck,
   CreditCard,
   FileCheck2,
   LockKeyhole,
@@ -16,20 +15,17 @@ import {
   Wrench,
 } from 'lucide-react';
 import SectionHeader from '../../components/SectionHeader.jsx';
-import LiveIntegrationStatus from '../../components/LiveIntegrationStatus.jsx';
 
 export default function Features() {
   return (
     <main>
       <section className="page">
-        <SectionHeader eyebrow="Salahny Platform" title="Complete feature map for drivers, workshops, and admins">
-          Salahny is now a connected vehicle-service platform: driver actions create real backend
-          records, workshops receive and manage those records, and admins review platform activity
-          from the same production API and MongoDB database.
+        <SectionHeader eyebrow="Salahny" title="Car service made simple">
+          Find nearby workshops, book available times, follow your request, and keep your car service history in one place.
         </SectionHeader>
 
         <div className="feature-grid three">
-          {featureGroups.map(({ title, text, Icon }) => (
+          {customerFeatures.map(({ title, text, Icon }) => (
             <article className="feature-card" key={title}>
               <Icon />
               <h3>{title}</h3>
@@ -39,27 +35,12 @@ export default function Features() {
         </div>
       </section>
 
-      <LiveIntegrationStatus />
-
       <section className="content-band">
-        <SectionHeader eyebrow="Latest implementation edits" title="What was added and fixed in the application">
-          These are the major product and engineering updates reflected across the mobile app,
-          backend, and website copy.
+        <SectionHeader eyebrow="For drivers" title="Book the right workshop near you">
+          Salahny uses your location to show nearby available workshops first, so you can choose a practical service provider instead of searching through unrelated locations.
         </SectionHeader>
-        <div className="timeline-grid">
-          {latestEdits.map((item) => (
-            <article className="compact-card update-card" key={item.title}>
-              <strong>{item.title}</strong>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-band subtle">
-        <SectionHeader eyebrow="Real workflow" title="How a driver connects with a workshop" />
         <div className="flow-strip">
-          {workflow.map((step, index) => (
+          {driverFlow.map((step, index) => (
             <article className="feature-card" key={step.title}>
               <span className="step-number">{index + 1}</span>
               <h3>{step.title}</h3>
@@ -69,23 +50,36 @@ export default function Features() {
         </div>
       </section>
 
+      <section className="content-band subtle">
+        <SectionHeader eyebrow="For workshops" title="Manage work from request to completion">
+          Workshops can receive driver requests, manage services and availability, handle repairs, and build trust through completed jobs and ratings.
+        </SectionHeader>
+        <div className="feature-grid three">
+          {workshopFeatures.map(({ title, text, Icon }) => (
+            <article className="feature-card" key={title}>
+              <Icon />
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="content-band">
-        <SectionHeader eyebrow="Security and production readiness" title="Key safeguards now documented" />
+        <SectionHeader eyebrow="Trust" title="Designed for safer service decisions" />
         <div className="feature-grid two">
           <article className="feature-card accent">
             <ShieldCheck />
-            <h3>Account approval gate</h3>
+            <h3>Verified access</h3>
             <p>
-              Driver and workshop accounts stay pending until admin approval. Workshop documents are
-              submitted for OCR/CV verification and manual review before activation.
+              Accounts and workshop documents are reviewed before activation so drivers deal with approved providers.
             </p>
           </article>
           <article className="feature-card accent">
             <LockKeyhole />
-            <h3>Secure password reset</h3>
+            <h3>Protected account recovery</h3>
             <p>
-              Reset requests use expiring tokens, backend validation, password hashing, and Resend
-              delivery instead of email-only password changes.
+              Password reset uses a secure email token so only the account owner can change their password.
             </p>
           </article>
         </div>
@@ -94,123 +88,96 @@ export default function Features() {
   );
 }
 
-const featureGroups = [
+const customerFeatures = [
   {
-    title: 'Driver accounts',
-    text: 'Registration, login, password reset, profile, vehicles, booking history, diagnostics, emergency requests, chat, and notifications.',
+    title: 'Nearby workshops',
+    text: 'Use your location to find nearby workshops and continue booking with the provider that makes sense for your trip.',
     Icon: Car,
   },
   {
-    title: 'Workshop accounts',
-    text: 'Workshop registration, document submission, approval status, services, availability, requests, active jobs, earnings, chat, and diagnostics.',
+    title: 'Workshop booking',
+    text: 'Choose a service, vehicle, workshop, and available appointment time in a guided booking flow.',
     Icon: Store,
   },
   {
-    title: 'Admin operations',
-    text: 'Driver and workshop management, account approvals, document review, booking monitoring, catalogs, logs, and settings.',
-    Icon: BadgeCheck,
-  },
-  {
-    title: 'AI diagnosis reports',
-    text: 'Reports now show detection plus prediction, confidence, risk level, recommendations, and repair-task actions.',
+    title: 'AI car check',
+    text: 'Review diagnostic information, predicted issues, risk level, and recommended next steps before repair decisions.',
     Icon: Bot,
   },
   {
-    title: 'Repair task flow',
-    text: 'Create Repair Task moves the work into repair progress, and Done moves completed jobs toward the completion workflow.',
-    Icon: Wrench,
+    title: 'Emergency support',
+    text: 'Request roadside support and follow the status until help is assigned and completed.',
+    Icon: ShieldCheck,
   },
   {
-    title: 'Role-based verification',
-    text: 'Driver verification accepts driving licenses; workshop verification requires commercial register and can include tax card support.',
-    Icon: FileCheck2,
-  },
-  {
-    title: 'Availability slots',
-    text: 'Workshop-created slots are stored and displayed consistently so drivers see the same date and time selected by the workshop.',
+    title: 'Live availability',
+    text: 'See appointment slots created by workshops and book a time that is actually available.',
     Icon: CalendarClock,
   },
   {
-    title: 'Google Maps flow',
-    text: 'Drivers can use their location, view nearby workshops, compare distance, and continue to booking from workshop listings.',
-    Icon: MapPinned,
-  },
-  {
     title: 'Notifications',
-    text: 'Booking changes, approvals, rejected requests, emergency events, report sharing, and slot actions create user notifications.',
+    text: 'Receive updates when requests are created, accepted, rejected, completed, or need attention.',
     Icon: Bell,
   },
   {
     title: 'Chat',
-    text: 'Driver and workshop conversations are tied to booking context, with persisted messages and unread status support.',
+    text: 'Message the workshop about the request and keep the conversation connected to the service.',
     Icon: MessageCircle,
   },
   {
     title: 'Ratings',
-    text: 'After completion, drivers can rate workshops and workshops can rate drivers, updating profile rating totals.',
+    text: 'After completion, drivers and workshops can rate each other to improve trust on the platform.',
     Icon: Star,
+  },
+];
+
+const driverFlow = [
+  {
+    title: 'Share location',
+    text: 'Allow location access or enter an address so Salahny can find workshops close to you.',
+  },
+  {
+    title: 'Compare nearby options',
+    text: 'Review workshops by distance, rating, services, and open status.',
+  },
+  {
+    title: 'Choose a time',
+    text: 'Select a workshop appointment from the available slots.',
+  },
+  {
+    title: 'Track the request',
+    text: 'Follow status updates from pending to accepted, in progress, and completed.',
+  },
+  {
+    title: 'Rate the service',
+    text: 'Rate the workshop after the request is completed.',
+  },
+];
+
+const workshopFeatures = [
+  {
+    title: 'Requests',
+    text: 'Receive driver bookings and accept, reject, start, or complete service work.',
+    Icon: BadgeCheck,
+  },
+  {
+    title: 'Repair tasks',
+    text: 'Turn diagnostics into repair work and keep job status clear for the driver.',
+    Icon: Wrench,
+  },
+  {
+    title: 'Documents',
+    text: 'Submit business verification documents so the account can be reviewed and approved.',
+    Icon: FileCheck2,
   },
   {
     title: 'Earnings',
-    text: 'Completed services update workshop revenue and completed-service counters automatically from booking data.',
+    text: 'Completed services update workshop earnings and completed-service totals.',
     Icon: CreditCard,
   },
-];
-
-const latestEdits = [
   {
-    title: 'Create Repair Task fixed',
-    text: 'AI diagnosis repair actions now create backend repair tasks and move the job into the correct repair workflow instead of staying stuck.',
-  },
-  {
-    title: 'Done/completion navigation fixed',
-    text: 'Workshop completion actions now lead users to the right service status flow so jobs can become completed.',
-  },
-  {
-    title: 'AI report upgraded',
-    text: 'Reports now include both detected issue and predictive forecast language, without exposing it as fake simulation to users.',
-  },
-  {
-    title: 'Send to Driver flow connected',
-    text: 'Shared reports are saved, surfaced in the driver application, and connected to notification and email delivery.',
-  },
-  {
-    title: 'Password reset secured',
-    text: 'The reset flow verifies email and token, hashes the new password, clears used tokens, and supports immediate login after reset.',
-  },
-  {
-    title: 'Post-service ratings added',
-    text: 'Drivers rate workshops and workshops rate drivers only after completed service requests, preventing premature or duplicate ratings.',
-  },
-  {
-    title: 'Workshop money and completed services updated',
-    text: 'Completed jobs now feed workshop profile revenue and completed-service metrics automatically.',
-  },
-  {
-    title: 'Production Resend email verified',
-    text: 'The production backend reports Resend configured for Salahny email delivery from the health endpoint.',
-  },
-];
-
-const workflow = [
-  {
-    title: 'Driver selects service',
-    text: 'The driver logs in, chooses a vehicle, service, workshop, slot, and location.',
-  },
-  {
-    title: 'Booking is saved',
-    text: 'The website posts the booking to the production backend, where MongoDB stores the request.',
-  },
-  {
-    title: 'Workshop receives it',
-    text: 'The workshop portal loads pending requests from the backend and can accept, reject, start, or complete work.',
-  },
-  {
-    title: 'Status syncs back',
-    text: 'Driver, workshop, and admin screens read the updated booking status and notifications from the same API.',
-  },
-  {
-    title: 'Completion unlocks rating',
-    text: 'After completion, both roles can rate each other and workshop earnings are updated.',
+    title: 'Coverage',
+    text: 'Set workshop location and availability so nearby drivers can find and book you.',
+    Icon: MapPinned,
   },
 ];

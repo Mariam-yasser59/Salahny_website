@@ -4,6 +4,30 @@ import SectionHeader from '../../components/SectionHeader.jsx';
 import { useApi } from '../../hooks/useApi.js';
 import { post } from '../../services/api.js';
 
+const NEARBY_RADIUS_KM = 25;
+
+const getWorkshopLocation = (workshop) => {
+  const coordinates = workshop.location?.coordinates;
+  if (Array.isArray(coordinates) && coordinates.length >= 2) {
+    return { longitude: Number(coordinates[0]), latitude: Number(coordinates[1]) };
+  }
+  return {
+    latitude: Number(workshop.latitude || workshop.lat || workshop.location?.latitude),
+    longitude: Number(workshop.longitude || workshop.lng || workshop.location?.longitude),
+  };
+};
+
+const distanceKm = (a, b) => {
+  if (!a?.latitude || !a?.longitude || !b?.latitude || !b?.longitude) return null;
+  const R = 6371;
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const lat1 = (a.latitude * Math.PI) / 180;
+  const lat2 = (b.latitude * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+};
+
 export default function DriverBooking() {
   const location = useLocation();
   const { data: vehicles } = useApi('/vehicles', []);
@@ -20,7 +44,7 @@ export default function DriverBooking() {
 
   const vehiclesList = toList(vehicles, 'vehicles');
   const servicesList = toList(services, 'services');
-  const workshopsList = toList(workshops, 'workshops');
+  const rawWorkshopsList = toList(workshops, 'workshops');
 
   const [form, setForm] = useState({
     serviceId: '',
@@ -38,12 +62,42 @@ export default function DriverBooking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const driverPoint = form.latitude && form.longitude
+    ? { latitude: Number(form.latitude), longitude: Number(form.longitude) }
+    : null;
+
+  const workshopsList = useMemo(() => rawWorkshopsList
+    .map((workshop) => {
+      const workshopLocation = getWorkshopLocation(workshop);
+      return { ...workshop, distanceKm: distanceKm(driverPoint, workshopLocation) };
+    })
+    .filter((workshop) => driverPoint && workshop.distanceKm != null && workshop.distanceKm <= NEARBY_RADIUS_KM)
+    .sort((a, b) => a.distanceKm - b.distanceKm), [rawWorkshopsList, driverPoint]);
+
   useEffect(() => {
     const selectedWorkshopId = location.state?.workshopId;
+    const selectedLocation = location.state?.driverLocation;
     if (selectedWorkshopId) {
-      setForm((old) => ({ ...old, workshopId: selectedWorkshopId, slotIndex: '' }));
+      setForm((old) => ({
+        ...old,
+        workshopId: selectedWorkshopId,
+        slotIndex: '',
+        latitude: selectedLocation?.latitude ?? old.latitude,
+        longitude: selectedLocation?.longitude ?? old.longitude,
+        address: selectedLocation
+          ? `Current location: ${selectedLocation.latitude}, ${selectedLocation.longitude}`
+          : old.address,
+      }));
     }
   }, [location.state?.workshopId]);
+
+  useEffect(() => {
+    if (!driverPoint || !form.workshopId || rawWorkshopsList.length === 0) return;
+    const stillNearby = workshopsList.some((item) => String(item._id || item.id) === String(form.workshopId));
+    if (!stillNearby) {
+      setForm((old) => ({ ...old, workshopId: '', slotIndex: '' }));
+    }
+  }, [driverPoint, form.workshopId, rawWorkshopsList.length, workshopsList]);
 
   const selectedWorkshop = workshopsList.find(
     (item) => String(item._id || item.id) === String(form.workshopId)
@@ -188,11 +242,12 @@ export default function DriverBooking() {
           required
           value={form.workshopId}
           onChange={(e) => setForm({ ...form, workshopId: e.target.value, slotIndex: '' })}
+          disabled={!driverPoint}
         >
-          <option value="">Choose workshop</option>
+          <option value="">{driverPoint ? 'Choose nearby workshop' : 'Use location to show nearby workshops'}</option>
           {workshopsList.map((item) => (
             <option value={item._id || item.id} key={item._id || item.id}>
-              {item.name}
+              {item.name}{item.distanceKm != null ? ` - ${item.distanceKm.toFixed(1)} km` : ''}
             </option>
           ))}
         </select>
@@ -228,6 +283,10 @@ export default function DriverBooking() {
         <button type="button" className="ghost-btn" onClick={useMyLocation}>
           {locationLoading ? 'Getting location...' : 'Use my current location'}
         </button>
+
+        {driverPoint && workshopsList.length === 0 && (
+          <p className="form-note">No nearby workshops were found within {NEARBY_RADIUS_KM} km of this location.</p>
+        )}
 
         <textarea
           placeholder="Problem description"

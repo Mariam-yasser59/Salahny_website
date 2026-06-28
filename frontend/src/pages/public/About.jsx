@@ -1,6 +1,5 @@
 import { BadgeCheck, Bot, LifeBuoy, Star, Store, Wrench } from 'lucide-react';
 import SectionHeader from '../../components/SectionHeader.jsx';
-import LiveIntegrationStatus from '../../components/LiveIntegrationStatus.jsx';
 import { useApi } from '../../hooks/useApi.js';
 
 export default function About() {
@@ -40,8 +39,6 @@ export default function About() {
           <article className="feature-card"><LifeBuoy /><h3>Emergency support</h3><p>Roadside requests connect drivers with assigned workshops and live status updates.</p></article>
         </div>
       </section>
-
-      <LiveIntegrationStatus />
 
       <section className="split-section image-split">
         <img src="/images/service-trust.jpg" alt="Customer and mechanic agreeing on vehicle service" />

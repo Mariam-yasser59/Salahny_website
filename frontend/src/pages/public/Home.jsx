@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BadgeCheck, BarChart3, Bot, CalendarCheck, LifeBuoy, MessageCircle, ShieldCheck, Store, Wrench } from 'lucide-react';
 import SectionHeader from '../../components/SectionHeader.jsx';
-import LiveIntegrationStatus from '../../components/LiveIntegrationStatus.jsx';
 
 export default function Home() {
   return (
@@ -30,12 +29,10 @@ export default function Home() {
         </div>
       </section>
 
-      <LiveIntegrationStatus />
-
       <section className="content-band">
         <SectionHeader eyebrow="Operations" title="Everything an approved workshop needs">
-          Driver bookings, workshop status updates, admin review, notifications, AI reports, ratings,
-          and earnings all run through the production backend instead of disconnected screens.
+          Driver bookings, workshop status updates, notifications, AI reports, ratings,
+          and earnings stay connected from request to completion.
         </SectionHeader>
         <div className="feature-grid three">
           {[
@@ -45,7 +42,7 @@ export default function Home() {
             ['Diagnostics', 'Run manual OBD checks or upload CSV/JSON readings, then share reports to booking chat.', Bot],
             ['Emergency', 'Handle assigned roadside requests from acceptance through completion.', LifeBuoy],
             ['Messages and earnings', 'Chat with customers/admins and monitor completed-job earnings.', MessageCircle],
-            ['Approval and security', 'Keep driver/workshop access gated until admin approval, with secure reset emails handled through Resend.', ShieldCheck]
+            ['Approval and security', 'Keep driver/workshop access gated until admin approval, with protected account recovery.', ShieldCheck]
           ].map(([title, text, Icon]) => <article className="feature-card" key={title}><Icon /><h3>{title}</h3><p>{text}</p></article>)}
         </div>
       </section>
