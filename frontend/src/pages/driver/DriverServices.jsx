@@ -15,7 +15,13 @@ export default function DriverServices() {
           <h3>{service.name}</h3>
           <p>{service.description || service.category}</p>
           <strong>{service.price || 0} EGP</strong>
-          <Link className="primary-btn" to="/driver/booking">Book service</Link>
+          <Link
+            className="primary-btn"
+            to="/driver/booking"
+            state={{ serviceId: service.id || service._id || service.name }}
+          >
+            Book service
+          </Link>
         </article>
       ))}</div> : <EmptyState title="No services found" />}
     </div>

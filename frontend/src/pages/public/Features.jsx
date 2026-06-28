@@ -5,6 +5,7 @@ import {
   CalendarClock,
   Car,
   CreditCard,
+  MailCheck,
   FileCheck2,
   LockKeyhole,
   MapPinned,
@@ -13,6 +14,7 @@ import {
   Star,
   Store,
   Wrench,
+  Smartphone,
 } from 'lucide-react';
 import SectionHeader from '../../components/SectionHeader.jsx';
 
@@ -100,6 +102,11 @@ const customerFeatures = [
     Icon: Store,
   },
   {
+    title: 'App and website access',
+    text: 'Use your Salahny account from the mobile app or website and continue the same service workflow.',
+    Icon: Smartphone,
+  },
+  {
     title: 'AI car check',
     text: 'Review diagnostic information, predicted issues, risk level, and recommended next steps before repair decisions.',
     Icon: Bot,
@@ -116,8 +123,13 @@ const customerFeatures = [
   },
   {
     title: 'Notifications',
-    text: 'Receive updates when requests are created, accepted, rejected, completed, or need attention.',
+    text: 'Receive website updates when requests are created, accepted, rejected, completed, or need attention.',
     Icon: Bell,
+  },
+  {
+    title: 'Email updates',
+    text: 'Important account and password messages are delivered to the email address on your Salahny account.',
+    Icon: MailCheck,
   },
   {
     title: 'Chat',

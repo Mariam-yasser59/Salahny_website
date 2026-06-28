@@ -32,8 +32,9 @@ export default function Services() {
 const buildServiceCatalog = (apiServices) => {
   const unique = [];
   const seen = new Set();
+  const sourceServices = apiServices.length ? apiServices : curatedServices;
 
-  [...apiServices, ...curatedServices].forEach((service) => {
+  sourceServices.forEach((service) => {
     const name = service?.name || service?.title;
     if (!name) return;
 
@@ -50,10 +51,10 @@ const buildServiceCatalog = (apiServices) => {
       description:
         service.description ||
         service.details ||
-        fallback?.description ||
+        (!apiServices.length ? fallback?.description : '') ||
         'Professional vehicle service from trusted Salahny workshops.',
-      duration: normalizeDuration(service.duration || service.durationMins || fallback?.duration),
-      price: service.price ?? fallback?.price ?? 0,
+      duration: normalizeDuration(service.duration || service.durationMins || (!apiServices.length ? fallback?.duration : '')),
+      price: service.price ?? (!apiServices.length ? fallback?.price : 0) ?? 0,
     });
   });
 

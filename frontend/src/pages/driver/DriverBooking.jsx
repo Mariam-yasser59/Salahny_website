@@ -77,6 +77,7 @@ export default function DriverBooking() {
   useEffect(() => {
     const selectedWorkshopId = location.state?.workshopId;
     const selectedLocation = location.state?.driverLocation;
+    const selectedServiceId = location.state?.serviceId;
     if (selectedWorkshopId) {
       setForm((old) => ({
         ...old,
@@ -89,7 +90,10 @@ export default function DriverBooking() {
           : old.address,
       }));
     }
-  }, [location.state?.workshopId]);
+    if (selectedServiceId) {
+      setForm((old) => ({ ...old, serviceId: selectedServiceId }));
+    }
+  }, [location.state?.workshopId, location.state?.serviceId]);
 
   useEffect(() => {
     if (!driverPoint || !form.workshopId || rawWorkshopsList.length === 0) return;
