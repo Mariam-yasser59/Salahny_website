@@ -8,23 +8,33 @@ export default function Services() {
   if (loading) return <Loading />;
 
   const services = buildServiceCatalog(data?.services || []);
+  const groupedServices = services.reduce((groups, service) => {
+    const category = service.category || 'Maintenance';
+    groups[category] = [...(groups[category] || []), service];
+    return groups;
+  }, {});
 
   return (
     <main className="page">
       <SectionHeader eyebrow="Services" title="Complete service marketplace">
         Book trusted maintenance, diagnostics, repairs, and roadside support from verified Salahny workshops.
       </SectionHeader>
-      <div className="service-grid">
-        {services.map((service) => (
-          <article className="compact-card media-card" key={service.key || service.id || service.name}>
-            <img src={service.image} alt={`${service.name} service`} />
-            <Wrench />
-            <h3>{service.name}</h3>
-            <p>{service.description}</p>
-            <strong>{formatServiceMeta(service)}</strong>
-          </article>
-        ))}
-      </div>
+      {Object.entries(groupedServices).map(([category, items]) => (
+        <section className="page-section" key={category}>
+          <SectionHeader eyebrow="Category" title={category} />
+          <div className="service-grid">
+            {items.map((service) => (
+              <article className="compact-card media-card" key={service.key || service.id || service.name}>
+                <img src={service.image} alt={`${service.name} service`} />
+                <Wrench />
+                <h3>{service.name}</h3>
+                <p>{service.description}</p>
+                <strong>{formatServiceMeta(service)}</strong>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
     </main>
   );
 }
@@ -58,9 +68,9 @@ const buildServiceCatalog = (apiServices) => {
     });
   });
 
-  return unique.slice(0, serviceImages.length).map((service, index) => ({
+  return unique.map((service, index) => ({
     ...service,
-    image: serviceImageByName[service.key] || serviceImages[index],
+    image: serviceImageByName[service.key] || serviceImages[index % serviceImages.length],
   }));
 };
 

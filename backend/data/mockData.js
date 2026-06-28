@@ -1,3 +1,5 @@
+import { egyptServiceCatalog } from './egyptServiceCatalog.js';
+
 export const db = {
   users: [
     { id: 'u1', role: 'driver', name: 'Mariam Yasser', email: 'driver@salahny.com', password: 'driver123', phone: '+20 100 112 3344', status: 'active', city: 'Cairo', joinedAt: '2026-01-12', profileImage: '' },
@@ -11,30 +13,20 @@ export const db = {
     { id: 'v2', driverId: 'u1', make: 'Hyundai', model: 'Elantra', year: 2019, plate: 'MNO-8812', vin: 'KMHD84LF1KU654321', health: 73, obdStatus: 'Disconnected', mileage: 93820, lastService: '2026-02-11' }
   ],
   workshops: [
-    { id: 'w1', userId: 'u3', name: 'TurboFix Garage', address: '19 Abbas El Akkad, Nasr City', latitude: 30.061, longitude: 31.338, distance: '2.4 km', rating: 4.8, reviews: 184, open: true, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 68400, phone: '+20 122 661 9090', profileImage: '', specialties: ['Diagnostics', 'Oil Change', 'Battery', 'Tires'], availableSlots: ['2026-06-22T08:00:00.000Z', '2026-06-22T10:00:00.000Z'], serviceDetails: [{ id: 'ws1', name: 'Oil Change', emoji: 'Oil', durationMins: 45, price: 650 }, { id: 'ws2', name: 'AI Diagnostics', emoji: 'Scan', durationMins: 30, price: 300 }] },
+    { id: 'w1', userId: 'u3', name: 'TurboFix Garage', address: '19 Abbas El Akkad, Nasr City', latitude: 30.061, longitude: 31.338, distance: '2.4 km', rating: 4.8, reviews: 184, open: true, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 68400, phone: '+20 122 661 9090', profileImage: '', specialties: ['Diagnostics', 'Engine & Mechanical', 'Electrical System', 'Tires & Wheels'], availableSlots: ['2026-06-22T08:00:00.000Z', '2026-06-22T10:00:00.000Z'], serviceDetails: [{ id: 'engine-oil-change', name: 'Engine Oil Change', emoji: 'Service', durationMins: 45, price: 350 }, { id: 'ai-diagnosis-report', name: 'AI Diagnosis Report', emoji: 'Service', durationMins: 30, price: 225 }] },
     { id: 'w2', userId: 'u4', name: 'Prime Auto Care', address: '90 Street, New Cairo', latitude: 30.02, longitude: 31.49, distance: '6.1 km', rating: 4.6, reviews: 98, open: true, verified: false, accountStatus: 'pending', verificationStatus: 'pending_upload', revenue: 31200, phone: '+20 109 330 1900', specialties: ['Repair', 'Car Wash', 'Towing'], availableSlots: [], serviceDetails: [] },
     { id: 'w3', userId: 'u5', name: 'RedLine Service Hub', address: 'Sphinx Square, Mohandessin', latitude: 30.06, longitude: 31.2, distance: '4.8 km', rating: 4.9, reviews: 221, open: false, verified: true, accountStatus: 'active', verificationStatus: 'admin_approved', revenue: 92300, phone: '+20 101 221 5555', specialties: ['Engine', 'Brakes', 'Diagnostics'], availableSlots: [], serviceDetails: [] }
   ],
-  services: [
-    { id: 's1', name: 'Repair Service', category: 'Maintenance', price: 850, duration: '2-4 hrs', enabled: true, icon: 'Wrench', description: 'Mechanical inspection and repair for engine, brakes, suspension, and drivetrain issues.' },
-    { id: 's2', name: 'Oil Change', category: 'Routine', price: 650, duration: '45 min', enabled: true, icon: 'Droplets', description: 'Premium oil and filter replacement with fluid level checks.' },
-    { id: 's3', name: 'Battery Service', category: 'Electrical', price: 450, duration: '30 min', enabled: true, icon: 'BatteryCharging', description: 'Battery health test, replacement, and charging system check.' },
-    { id: 's4', name: 'Tire Service', category: 'Safety', price: 500, duration: '1 hr', enabled: true, icon: 'CircleGauge', description: 'Tire replacement, rotation, balancing, puncture repair, and pressure checks.' },
-    { id: 's5', name: 'Car Wash', category: 'Care', price: 220, duration: '35 min', enabled: true, icon: 'Sparkles', description: 'Interior and exterior wash with optional detailing.' },
-    { id: 's6', name: 'Towing', category: 'Emergency', price: 950, duration: 'On demand', enabled: true, icon: 'Truck', description: 'Emergency towing to the nearest verified workshop.' },
-    { id: 's7', name: 'Fuel Delivery', category: 'Emergency', price: 300, duration: '30-60 min', enabled: true, icon: 'Fuel', description: 'On-road fuel delivery when your tank runs dry.' },
-    { id: 's8', name: 'AI Diagnostics', category: 'Smart Care', price: 180, duration: 'Instant', enabled: true, icon: 'BrainCircuit', description: 'OBD-based diagnostic scoring and recommended service actions.' },
-    { id: 's9', name: 'Emergency Assistance', category: 'Emergency', price: 750, duration: 'Priority', enabled: true, icon: 'Siren', description: 'Roadside help for breakdowns, lockouts, jump starts, and urgent safety issues.' }
-  ],
+  services: egyptServiceCatalog,
   packages: [
     { id: 'p1', name: 'Basic', price: 499, period: 'month', enabled: true, features: ['1 AI diagnostic/month', 'Booking tracking', 'Workshop ratings', 'Support chat'] },
     { id: 'p2', name: 'Premium', price: 1299, period: 'month', enabled: true, popular: true, features: ['5 AI diagnostics/month', 'Priority workshops', 'Emergency dispatch discount', 'Maintenance reminders'] },
     { id: 'p3', name: 'Fleet', price: 5999, period: 'month', enabled: true, features: ['Unlimited diagnostics', '24/7 emergency priority', 'Fleet vehicle monitoring', 'Dedicated support advisor'] }
   ],
   bookings: [
-    { id: 'b1', driverId: 'u1', vehicleId: 'v1', workshopId: 'w1', serviceId: 's2', status: 'in_progress', date: '2026-04-28', time: '10:30', slot: '2026-04-28T08:30:00.000Z', price: 650, progress: 55, issue: 'Oil change due soon', timeline: ['Booked', 'Accepted', 'Vehicle received', 'Service in progress'] },
-    { id: 'b2', driverId: 'u1', vehicleId: 'v2', workshopId: 'w3', serviceId: 's8', status: 'completed', date: '2026-04-12', time: '14:00', price: 180, progress: 100, issue: 'Battery voltage fluctuating', timeline: ['Booked', 'Accepted', 'Diagnostic completed', 'Report sent'] },
-    { id: 'b3', driverId: 'u2', vehicleId: 'v3', workshopId: 'w1', serviceId: 's6', status: 'pending', date: '2026-04-27', time: '08:45', price: 950, progress: 15, issue: 'Vehicle will not start', timeline: ['Requested'] }
+    { id: 'b1', driverId: 'u1', vehicleId: 'v1', workshopId: 'w1', serviceId: 'engine-oil-change', status: 'in_progress', date: '2026-04-28', time: '10:30', slot: '2026-04-28T08:30:00.000Z', subtotal: 350, appServiceFee: 35, price: 385, total: 385, progress: 55, issue: 'Oil change due soon', timeline: ['Booked', 'Accepted', 'Vehicle received', 'Service in progress'] },
+    { id: 'b2', driverId: 'u1', vehicleId: 'v2', workshopId: 'w3', serviceId: 'ai-diagnosis-report', status: 'completed', date: '2026-04-12', time: '14:00', subtotal: 225, appServiceFee: 22.5, price: 247.5, total: 247.5, progress: 100, issue: 'Battery voltage fluctuating', timeline: ['Booked', 'Accepted', 'Diagnostic completed', 'Report sent'] },
+    { id: 'b3', driverId: 'u2', vehicleId: 'v3', workshopId: 'w1', serviceId: 'tow-truck-city', status: 'pending', date: '2026-04-27', time: '08:45', subtotal: 500, appServiceFee: 50, price: 550, total: 550, progress: 15, issue: 'Vehicle will not start', timeline: ['Requested'] }
   ],
   diagnostics: [
     { id: 'd1', driverId: 'u1', vehicleId: 'v1', date: '2026-04-20', coolantTemp: 91, rpm: 790, speed: 0, battery: 12.5, brake: 'Good', engineLoad: 28, healthScore: 87, possibleFault: 'Oil change due soon', probability: 68, recommendation: 'Book oil service within 2 weeks.' },
@@ -71,7 +63,7 @@ export const db = {
     { id: 'n1', userId: 'u3', title: 'New assigned request', message: 'A roadside emergency request was assigned to your workshop.', type: 'emergency', createdAt: '2026-06-19T09:15:00.000Z' }
   ],
   earnings: [
-    { id: 'e1', workshopId: 'w1', bookingId: 'b2', driverId: 'u1', amount: 180, status: 'available', createdAt: '2026-04-12T14:00:00.000Z' }
+    { id: 'e1', workshopId: 'w1', bookingId: 'b2', driverId: 'u1', amount: 247.5, status: 'available', createdAt: '2026-04-12T14:00:00.000Z' }
   ],
   trackingUpdates: [],
   verificationDocuments: []

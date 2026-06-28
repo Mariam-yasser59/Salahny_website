@@ -1,6 +1,7 @@
 import { db, findById, nextId } from '../data/mockData.js';
 import { notifyWorkshopNewBooking } from '../services/emailNotifications.js';
 import { consumeWorkshopSlot, createMockBooking, findService, findWorkshopById, insertBooking, listServices as listStoredServices, listWorkshops as listStoredWorkshops } from '../services/persistentData.js';
+import { calculateCheckoutTotal } from '../data/egyptServiceCatalog.js';
 
 const enrichBooking = (booking) => ({
   ...booking,
@@ -64,6 +65,7 @@ export const getBooking = (req, res) => {
 export const createBooking = async (req, res) => {
   const service = await findService(req.body.serviceId);
   const workshop = await findWorkshopById(req.body.workshopId || req.body.workshop);
+  const checkout = calculateCheckoutTotal(service?.price || req.body.subtotal || req.body.total || 0);
   const slot = req.body.slot || (req.body.date && req.body.time ? `${req.body.date}T${req.body.time}:00.000Z` : null);
   if (slot && workshop) {
     const consumed = await consumeWorkshopSlot(workshop, slot);
@@ -71,18 +73,21 @@ export const createBooking = async (req, res) => {
     req.body.slot = consumed.slot;
   }
   const booking = createMockBooking({
+    ...req.body,
     driverId: req.user.id,
     workshopId: workshop?.id || req.body.workshopId || req.body.workshop,
     serviceId: service?.id || req.body.serviceId,
     status: 'pending',
-    price: service?.price || req.body.total || 0,
+    subtotal: checkout.subtotal,
+    appServiceFee: checkout.appServiceFee,
+    price: checkout.total,
+    total: checkout.total,
     progress: 10,
     issue: req.body.issue || req.body.locationNotes || 'Service request created',
     timeline: ['Requested'],
     slot: req.body.slot || slot,
     date: (req.body.slot || slot || req.body.date || '').slice(0, 10),
-    time: (req.body.slot || slot || req.body.time || '').slice(11, 16),
-    ...req.body
+    time: (req.body.slot || slot || req.body.time || '').slice(11, 16)
   });
   const savedBooking = await insertBooking(booking);
   db.activityLogs.unshift({ id: nextId('a', 'activityLogs'), type: 'booking_created', actor: req.user.email, message: `Booking ${booking.id} created`, date: new Date().toLocaleString() });

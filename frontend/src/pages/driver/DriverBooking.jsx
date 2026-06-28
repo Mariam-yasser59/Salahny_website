@@ -146,6 +146,9 @@ export default function DriverBooking() {
 
   const selectedSlot = form.slotIndex !== '' ? availableSlots[Number(form.slotIndex)] : null;
   const selectedSlotValue = selectedSlot ? getSlotValue(selectedSlot) : '';
+  const subtotal = Number(selectedService?.price || 0);
+  const appServiceFee = Math.round(subtotal * 0.10 * 100) / 100;
+  const total = Math.round((subtotal + appServiceFee) * 100) / 100;
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -196,7 +199,9 @@ export default function DriverBooking() {
       longitude: form.longitude,
       locationNotes: form.issue,
       paymentMethod: 'Cash on Service',
-      total: selectedService?.price || 0
+      subtotal,
+      appServiceFee,
+      total
     };
 
     try {
@@ -297,6 +302,15 @@ export default function DriverBooking() {
           value={form.issue}
           onChange={(e) => setForm({ ...form, issue: e.target.value })}
         />
+
+        {selectedService && (
+          <div className="compact-card">
+            <h3>Checkout summary</h3>
+            <p>Service cost: {subtotal.toLocaleString('en-US')} EGP</p>
+            <p>Salahny service fee (10%): {appServiceFee.toLocaleString('en-US')} EGP</p>
+            <strong>Total: {total.toLocaleString('en-US')} EGP</strong>
+          </div>
+        )}
 
         <button className="primary-btn" disabled={submitting}>
           {submitting ? 'Creating booking...' : 'Confirm booking'}

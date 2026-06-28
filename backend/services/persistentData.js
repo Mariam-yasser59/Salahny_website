@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { db, findById, nextId } from '../data/mockData.js';
+import { egyptServiceCatalog } from '../data/egyptServiceCatalog.js';
 
 const isMongoReady = () => mongoose.connection.readyState === 1 && mongoose.connection.db;
 const collection = (name) => mongoose.connection.db.collection(name);
@@ -45,12 +46,15 @@ export const availableSlotValues = (workshop, bookings = []) => {
 };
 
 export const listServices = async () => {
-  if (!isMongoReady()) return db.services;
+  if (!isMongoReady()) return egyptServiceCatalog;
   const items = await collection('services').find({}).toArray();
-  return items.map(normalizeId);
+  const customByName = new Map(items.map((item) => [String(item.name || '').toLowerCase(), normalizeId(item)]));
+  return egyptServiceCatalog.map((item) => ({ ...item, ...(customByName.get(item.name.toLowerCase()) || {}) }));
 };
 
 export const findService = async (id) => {
+  const catalogMatch = egyptServiceCatalog.find((item) => item.id === id || item.name === id);
+  if (catalogMatch) return catalogMatch;
   if (!isMongoReady()) return findById('services', id);
   const item = await collection('services').findOne(byIdQuery(id));
   return normalizeId(item);
